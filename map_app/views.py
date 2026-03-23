@@ -56,11 +56,11 @@ def dummy():
         query_str = query_str.replace('""', '"')
 
         # Provide strict formatting wrapper for overpass API query payload: we explicitly request JSON back
-        final_query = "[out:json];\n" + query_str
+        final_query = "[out:json][timeout:90];\n" + query_str
         
         # Dispatch the request to the central public Overpass API server
         overpass_url = "https://overpass-api.de/api/interpreter"
-        response = requests.post(overpass_url, data={'data': final_query}, timeout=30)
+        response = requests.post(overpass_url, data={'data': final_query}, timeout=95)
         
         # Evaluate response from the map API and proxy the valid elements payload back to our Javascript frontend
         if response.status_code == 200:
