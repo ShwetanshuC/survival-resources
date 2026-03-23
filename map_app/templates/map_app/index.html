@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensure proper scaling on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survival Resources</title>
+
+    <!-- Leaflet CSS for Map Rendering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- FontAwesome for the Button Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+    <style>
+        /* General Body Styling - Applied to match the image's sage green aesthetic */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #BDBFB3; /* Sage/Khaki background */
+        }
+
+        /* ----- Home Page UI Styles ----- */
+        #home-view {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: #5A4E4D; /* Dark brownish-gray */
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* The 'Icon here' placeholder square on the top left of the header */
+        .header-icon-placeholder {
+            position: absolute;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #D9D9D9; /* Light gray box */
+            color: black;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        /* Central Container holding the 4 buttons */
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* 2x2 CSS Grid for the buttons */
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px; /* Space between buttons */
+            max-width: 600px;
+            width: 100%;
+        }
+
+        /* Individual Button Container */
+        .category-btn {
+            background-color: #1A295C; /* Navy Blue background */
+            border: none;
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Hover effect to make it feel interactive */
+        .category-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+
+        /* White inner square holding the black icon */
+        .icon-box {
+            background-color: white;
+            width: 100%;
+            aspect-ratio: 1 / 1; /* Keep it perfectly square */
+            max-width: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        /* The FontAwesome icon inside the box */
+        .icon-box i {
+            font-size: 80px;
+            color: black;
+        }
+
+        /* Button Text Below the Icon */
+        .category-label {
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        /* Footer Styling */
+        footer {
+            background-color: #635552; /* Dark brown/gray matching image */
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        /* ----- Map View Styles ----- */
+        #map-view {
+            display: none; /* Hidden by default until a button is clicked */
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Top Bar Overlay on Map */
+        .map-bar {
+            background-color: #1A295C;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            position: relative;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.4);
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+            background-color: #e5e5e5;
+        }
+
+        /* Status Info Overlay on Map */
+        #loading-info {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-weight: bold;
+            display: none; /* Hidden strictly when inactive */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==============================================
+         HOME VIEW: Contains the 4 Category Buttons
+         ============================================== -->
+    <div id="home-view">
+        <header>
+            <div class="header-icon-placeholder">Icon here</div>
+            <h1>Survival Resources—ONLY FOR EMERGENCIES</h1>
+        </header>
+
+        <div class="main-content">
+            <div class="button-grid">
+                
+                <!-- Shelter Button -->
+                <button class="category-btn" onclick="openMapCategory('shelter')">
+                    <div class="icon-box">
+                        <!-- House Icon representing Shelter -->
+                        <i class="fa-solid fa-house"></i>
+                    </div>
+                    <span class="category-label">Shelter</span>
+                </button>
+
+                <!-- Food Button -->
+                <button class="category-btn" onclick="openMapCategory('food')">
+                    <div class="icon-box">
+                        <!-- Fork/Plate/Knife Icon representing Food -->
+                        <i class="fa-solid fa-utensils"></i>
+                    </div>
+                    <span class="category-label">Food</span>
+                </button>
+
+                <!-- ER/Medical Button -->
+                <button class="category-btn" onclick="openMapCategory('medical')">
+                    <div class="icon-box">
+                        <!-- Hospital Building Icon representing ER/Medical -->
+                        <i class="fa-solid fa-hospital"></i>
+                    </div>
+                    <span class="category-label">ER/Medical</span>
+                </button>
+
+                <!-- Rehab Button -->
+                <button class="category-btn" onclick="openMapCategory('rehab')">
+                    <div class="icon-box">
+                        <!-- Medical cross/pulse referencing health restoration -->
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <span class="category-label">Rehab</span>
+                </button>
+
+            </div>
+        </div>
+
+        <footer>
+            For non-emergent resources, please consult 211: <a href="https://www.211.org" target="_blank">https://www.211.org</a>
+        </footer>
+    </div>
+
+
+    <!-- ==============================================
+         MAP VIEW: Contains Leaflet Map targeting the specific category
+         ============================================== -->
+    <div id="map-view">
+        <div class="map-bar">
+            <!-- Allows user to go back to the home view smoothly -->
+            <button class="back-btn" onclick="closeMap()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <span id="map-title" style="font-weight:bold; font-size:18px;">Finding Resources...</span>
+            <!-- Dropdown to select search radius dynamically -->
+            <div class="radius-selector" style="display:flex; align-items:center; gap:5px;">
+                <label for="radius-select" style="font-size:14px; display:none;" id="radius-label">Radius:</label>
+                <select id="radius-select" onchange="updateRadius()" style="padding:5px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                    <option value="2000" selected>1.2 mi (Walk)</option>
+                    <option value="5000">3.1 mi (Short Drive)</option>
+                    <option value="10000">6.2 mi (Drive)</option>
+                    <option value="25000">15.5 mi (Wide Search)</option>
+                </select>
+            </div>
+        </div>
+        <div id="loading-info">Gathering location...</div>
+        <div id="map"></div>
+    </div>
+
+
+    <!-- Leaflet JS Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Global variables state management
+        var map = null;
+        var userMarker = null;
+        var resourceMarkers = []; // Keep track of pins so we can clear them easily on back
+        
+        // Track the current application state for radius refreshing
+        var currentCategory = null;
+        var currentLat = null;
+        var currentLon = null;
+
+        // Helper Map describing frontend strings based on category ID
+        const categoryTitles = {
+            'shelter': 'Emergency Shelters',
+            'food': 'Food Banks & Kitchens',
+            'medical': 'ERs & Medical Centers',
+            'rehab': 'Rehabilitation Centers'
+        };
+
+        /**
+         * Triggered when a User clicks any of the 4 category buttons.
+         * Hides the home screen, initializes the map, and requests their geolocation.
+         */
+        function openMapCategory(categoryId) {
+            // Document application state
+            currentCategory = categoryId;
+
+            // 1) Swap UI displays
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('map-view').style.display = 'flex';
+            
+            // 2) Set dynamic text
+            document.getElementById('map-title').innerText = categoryTitles[categoryId] || "Resources";
+            
+            // 3) Show Loading Banner
+            let infoBox = document.getElementById('loading-info');
+            infoBox.style.display = 'block';
+            infoBox.innerText = "Finding your location...";
+
+            // 4) Initialize Map if it doesn't already exist
+            if (!map) {
+                map = L.map('map').setView([0, 0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+            }
+
+            // 5) Prompt browser location api
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => onLocationSuccess(pos, categoryId),
+                    onLocationError,
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                infoBox.innerText = "Geolocation is not supported by your browser.";
+            }
+        }
+
+        /**
+         * Triggered when the user hits the Back Button.
+         * Shuts down the map view and brings the 4 buttons back to center-screen.
+         */
+        function closeMap() {
+            // Hide the actual map screen
+            document.getElementById('map-view').style.display = 'none';
+            // Show the standard main container
+            document.getElementById('home-view').style.display = 'flex';
+            
+            // Clean up old markers
+            if (userMarker) { 
+                map.removeLayer(userMarker); 
+                userMarker = null; 
+            }
+            resourceMarkers.forEach(marker => map.removeLayer(marker));
+            resourceMarkers = []; // Empty the tracking array completely
+        }
+
+        /**
+         * Fired automatically when `navigator.geolocation` succeeds.
+         * Parses the coords, centers the map, and queries the respective backend.
+         */
+        function onLocationSuccess(pos, categoryId) {
+            currentLat = pos.coords.latitude;
+            currentLon = pos.coords.longitude;
+            fetchData();
+        }
+
+        /**
+         * Triggers the radius update manually when user changes dropdown
+         */
+        function updateRadius() {
+            if (currentCategory && currentLat && currentLon) {
+                // Clear existing pins cleanly before polling again
+                resourceMarkers.forEach(marker => map.removeLayer(marker));
+                resourceMarkers = [];
+                fetchData();
+            }
+        }
+
+        /**
+         * Generic data fetcher utilizing state variables
+         */
+        function fetchData() {
+            var infoBox = document.getElementById('loading-info');
+            var radius = document.getElementById('radius-select').value;
+            
+            infoBox.style.display = 'block';
+            infoBox.innerText = `Location verified. Searching for ${currentCategory} (${radius}m)...`;
+
+            // Adjust view to zoom closely on user's exact coordinate point
+            map.setView([currentLat, currentLon], 14);
+
+            // Draw the user pin (Red map marker)
+            if (!userMarker) {
+                var userIcon = L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+                userMarker = L.marker([currentLat, currentLon], {icon: userIcon}).addTo(map)
+                    .bindPopup("<b>Your Approximate Location</b>")
+                    .openPopup();
+            }
+
+            // Perform our asynchronous Javascript Fetch exactly against our Django REST API url
+            fetch(`/api/search_resources/?category=${currentCategory}&lat=${currentLat}&lon=${currentLon}&radius=${radius}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Safety check if the response format contains valid `elements` array from Overpass
+                    if (data.elements && data.elements.length > 0) {
+                        infoBox.innerText = `Found ${data.elements.length} match(es) tightly inside walking range!`;
+                        
+                        // Overpass typically returns standard "nodes" mapping lat/long directly 
+                        data.elements.forEach(element => {
+                            if (element.type === 'node') {
+                                // Default fallback naming just in case the node lacks a dedicated "name" tag
+                                var name = element.tags && element.tags.name ? element.tags.name : "Unnamed Service Provider";
+                                
+                                // Draw standardized Blue Pin for the available resource
+                                var marker = L.marker([element.lat, element.lon]).addTo(map)
+                                    .bindPopup(`<b>${name}</b><br>Category: ${categoryTitles[currentCategory]}`);
+                                
+                                // Index into global array so we can wipe them on `Back` execution
+                                resourceMarkers.push(marker);
+                            }
+                        });
+
+                        // Automatically hide infoBox gently using setTimeout
+                        setTimeout(() => { infoBox.style.display = 'none'; }, 4000);
+                    } else {
+                        infoBox.innerText = "No resources currently found within 2km walking radius. Please widen search.";
+                    }
+                })
+                .catch(err => {
+                    console.error("Fetch API error:", err);
+                    infoBox.innerText = "Fatal network error fetching resources. Please try again.";
+                });
+        }
+
+        /**
+         * Fired manually by javascript if `navigator.geolocation` crashes or user denies permission.
+         */
+        function onLocationError(err) {
+            console.warn(`Location Error Code (${err.code}): ${err.message}`);
+            document.getElementById('loading-info').innerText = "Location access denied or failed. Please allow standard browser location permission.";
+        }
+    </script>
+</body>
+</html>
