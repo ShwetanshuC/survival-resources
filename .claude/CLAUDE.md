@@ -21,10 +21,14 @@ All agents follow `.claude/goals.md`. The PM spawns specialists to preserve its 
 | Agent | File | Role | Spawned when |
 |---|---|---|---|
 | Project Manager | `agents/project_manager.md` | Plans, tracks, delegates, runs autoresearch loop | `"what should we work on"`, `"pm: autonomous on"` |
+| Token Guardian | `agents/token_guardian.md` | Monitors hourly/weekly token usage, issues throttle directives | Every 30 min automatically; `"token status"`, `"guardian: run"` |
 | Implementer | `agents/implementer.md` | Applies one targeted code change | PM has a precise change ready |
 | Query Researcher | `agents/query_researcher.md` | Evaluates an Overpass tag hypothesis with live data | PM wants to test a new OSM tag |
 | Test Auditor | `agents/test_auditor.md` | Checks one app's test coverage, writes missing stubs | PM suspects a test gap |
 | Scraper Researcher | `agents/scraper_researcher.md` | Evaluates a candidate whitelist URL | PM wants to add a dynamic data source |
+
+- Guardian directives: `.claude/agents/state/guardian_directives.md` — **all agents must read this before starting any session**
+- Token usage log: `.claude/agents/state/token_usage_log.tsv`
 
 - PM state: `.claude/agents/state/pm_state.md`
 - Experiment log: `.claude/agents/state/research_log.tsv`

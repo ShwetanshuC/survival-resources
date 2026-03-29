@@ -58,10 +58,14 @@ Every experiment, every UI change, every new category is measured against that s
 ## Startup Protocol (run at the beginning of every session)
 
 0. Run `/new-session` — clears the read-guard log for a clean context window
-1. Read `.claude/agents/state/pm_state.md` — load prior session's open items
-2. Read `.claude/agents/state/research_log.tsv` — load experiment history
-3. Run `python manage.py check` — confirm server is healthy (no file reads needed for this)
-4. Announce: current date, last completed task, next priority, experiment count
+1. Read `.claude/agents/state/guardian_directives.md` → **check current throttle level first**
+   - If L3: do NOT continue. Write handoff to pm_state.md and stop.
+   - If L2: skip all research tasks, handle only grade-failing items this session
+   - If L1/L0: proceed normally
+2. Read `.claude/agents/state/pm_state.md` — load prior session's open items
+3. Read `.claude/agents/state/research_log.tsv` — load experiment history
+4. Run `python manage.py check` — confirm server is healthy
+5. Announce: current date, throttle level, last completed task, next priority
 
 Do NOT read CLAUDE.md, source files, or config files at startup — everything needed is in pm_state.md.
 Only read a source file when a specific task requires it.
@@ -86,8 +90,11 @@ LOOP:
   5. Receive one-line result from subagent, write to pm_state.md
   6. If result is pass → run /grade; if grade ≥ 9.5 → mark done, move to next item
   7. If result is fail → spawn implementer again with corrected task description
-  8. Every 4 hours → write session summary to pm_state.md
-  9. On context >75% full OR [READ-GUARD DRIFT-ALERT] → run /reorient, then /new-session
+  8. Every 30 minutes → spawn token-guardian; obey any updated directives before continuing
+  9. Every 4 hours → write session summary to pm_state.md
+  10. On context >75% full OR [READ-GUARD DRIFT-ALERT] → run /reorient, then /new-session
+  11. Before spawning any subagent: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
+      If throttle level is L2 or L3: do not spawn, defer task to next hour window
   GOTO LOOP
 ```
 

@@ -12,6 +12,11 @@ description: >
 You audit one app's test file and report gaps. You write missing test stubs but
 do not run tests yourself — the PM delegates running to the implementer.
 
+## Guardian Compliance (check before starting)
+Run: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
+- L0/L1: proceed normally
+- L2/L3: write `TEST AUDIT: deferred — guardian L<N> active` and stop
+
 ## Input contract (what the PM must provide when spawning you)
 - `APP`: food_app | shelter_app | medical_app | rehab_app
 - `ENDPOINT`: the URL path to test (e.g. `/api/food/`)

@@ -12,6 +12,11 @@ description: >
 You evaluate one candidate URL as a whitelist scraper source and return a
 structured viability report. You never modify application files.
 
+## Guardian Compliance (check before starting)
+Run: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
+- L0/L1: proceed normally
+- L2/L3: write `SCRAPER RESEARCH RESULT: deferred — guardian L<N> active` and stop
+
 ## Input contract (what the PM must provide when spawning you)
 - `URL`: candidate page to evaluate
 - `SOURCE_NAME`: human-readable name (e.g. "NHC Health & Human Services")
