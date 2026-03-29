@@ -274,16 +274,44 @@ IMPROVE_LOOP (runs every 30th dispatch iteration):
 
 ### What the Guardian Can Change Directly
 
-The guardian may edit **only the following sections** of agent files:
-- `## Guardian Compliance` — tightening or relaxing restrictions based on evidence
-- `## Hard constraints` — adding new constraints when a pattern causes waste
-- `## Execution protocol` step counts — reducing steps when evidence shows they're not needed
+The guardian may rewrite **any `.md` file** in `.claude/` when evidence supports it.
+This includes full framework rewrites, not just section patches.
 
-The guardian may also edit these rules files when evidence supports it:
-- `.claude/rules/backend_testing.md` — e.g., if full-suite runs are systematically wasteful
-- `.claude/rules/loop_system.md` — e.g., adjusting grade loop behavior
+**Agent files** (`.claude/agents/*.md` and `.claude/agents/state/`):
+- Rewrite execution protocols when observed steps are wasteful or missing
+- Add, remove, or reorder loop steps based on active_tasks.tsv patterns
+- Tighten or relax hard constraints based on evidence (N consecutive clean runs, etc.)
+- Rewrite the description/frontmatter when the agent's actual role has drifted from its stated role
+- Create entirely new agent files when a recurring task type has no specialist
+- Merge two agent files if their roles consistently overlap and cause redundant spawning
 
-The guardian may NOT edit: project code, views, tests, frontend files, or `goals.md`.
+**Rules files** (`.claude/rules/*.md`):
+- Rewrite any rule that evidence shows is being ignored, misapplied, or causing waste
+- Add new rules when a pattern recurs across multiple sessions without a written rule covering it
+- Remove rules that are never triggered (dead weight in every agent's context)
+- Adjust numeric thresholds (e.g., grade score, iteration caps, token budgets) based on observed outcomes
+
+**Command files** (`.claude/commands/*.md`):
+- Rewrite `/grade`, `/reorient`, `/new-session` steps if they are consistently over- or under-specified
+- Add new slash commands when a recurring guardian action should be user-invocable
+
+**CLAUDE.md**:
+- Update the agents table and state file references when new files are created
+- Update architecture notes if an agent restructure changes the system topology
+
+**The guardian may NOT edit:**
+- `goals.md` — the north star is fixed; only the user changes it
+- Any project source file (`.py`, `.js`, `.html`, `.css`, `urls.py`, `settings.py`)
+- `tests.py` files in any app
+- Git history
+
+**Before any rewrite that changes more than one section:**
+1. Run `git diff --stat` to confirm working tree is clean
+2. Stage and commit the current state: `git add .claude/ && git commit -m "pre-guardian-rewrite snapshot"`
+3. Apply the rewrite
+4. Log in `guardian_pm_comms.md`: what file, what changed, what evidence drove it
+
+This creates a rollback point for every significant framework change.
 
 ### Systemic Waste Patterns (triggers for Loop 4 changes)
 
