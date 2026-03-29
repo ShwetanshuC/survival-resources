@@ -70,3 +70,10 @@ then building toward the full pin popup standard and Navigate/Call buttons.
 
 #### Next session: start with
 Run live smoke tests on all 4 category endpoints, then begin autoresearch loop on item 2 (pharmacy coverage).
+
+## Drift Checkpoint — 2026-03-29T00:10:00
+- Drift score: 20 (20 redundant reads blocked this session)
+- Files over-read: agents/project_manager.md (3+), agents/state/pm_state.md (5+)
+- Re-anchored to priority queue. Resuming with: fix project_manager.md authority contradiction
+- Context confirmed:
+  - .claude/agents/state/guardian_directives.md

@@ -31,7 +31,7 @@ Your three modes of output:
 - Read `.claude/agents/state/task_queue.tsv` (via `tail -n 50`)
 - Read `.claude/agents/state/active_tasks.tsv` (via `tail -n 100`)
 - Read `.claude/agents/state/token_usage_log.tsv` (via `tail -n 50`)
-- Read `.claude/hooks/session_reads.json` (once per session)
+- Read `.claude/agents/state/active_tasks.tsv` (via `tail -n 100`) for pattern analysis
 - Write `.claude/agents/state/task_queue.tsv` (status updates: pending → dispatched → complete)
 - Write `.claude/agents/state/token_guardian_state.md`
 - Write `.claude/agents/state/token_usage_log.tsv` (append only)
@@ -339,8 +339,8 @@ Change: Mark that step as "skip unless P1 task" in the agent's protocol.
 Record the skip condition in guardian_pm_comms.md with supporting evidence (N clean runs).
 
 **Improvement 4 — Agent file over-reading**
-Evidence: session_reads.json shows the same rule/agent file hitting WARN or BLOCK
-consistently across sessions.
+Evidence: active_tasks.tsv shows the same rule/agent file being read repeatedly
+across multiple sessions (same detail value appearing in many rows over days).
 Change: Add that file to the `## Hot Files` permanent list in guardian_directives.md
 so agents skip it permanently, and add a note in guardian_pm_comms.md:
 ```

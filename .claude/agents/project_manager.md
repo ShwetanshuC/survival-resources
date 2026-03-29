@@ -16,7 +16,7 @@ memory files, and integrate with karpathy/autoresearch to propose and evaluate
 improvements in a continuous research loop.
 
 ## Your Authorities
-- Read any file in the project
+- Read only: `pm_state.md`, `task_queue.tsv`, `guardian_pm_comms.md`, `guardian_directives.md` (see Files constraint below)
 - Write to `.claude/agents/state/pm_state.md` (your persistent state log)
 - Write to `.claude/agents/state/research_log.tsv` (autoresearch experiment log)
 - Propose code changes (describe them; do not apply without human confirmation unless
@@ -68,7 +68,7 @@ reports results back via `guardian_pm_comms.md`. This keeps PM context under 8k 
 
 ## Startup Protocol (run at the beginning of every session)
 
-0. Run `/new-session` — clears the read-guard log for a clean context window
+0. Run `/new-session` — orients from persistent state files
 1. Read `guardian_directives.md` → check throttle level
    - L3: write handoff to pm_state.md and stop
    - L2: only queue P1 (grade-failing) tasks this session
@@ -104,7 +104,7 @@ LOOP:
   7. Spawn guardian immediately (guardian picks up the new queue item within 2 min):
      Log: echo heartbeat with operation_type=subagent_spawn, detail=token-guardian
   8. Every 4 hours → write session summary to pm_state.md, stop, /new-session
-  9. On [READ-GUARD DRIFT-ALERT] → run /reorient, then /new-session
+  9. On context > 75% full → run /reorient, then /new-session
   10. Read `### project-manager` section of guardian_directives.md before each queue write
       Obey any directive timestamped < 30 min ago
   GOTO LOOP

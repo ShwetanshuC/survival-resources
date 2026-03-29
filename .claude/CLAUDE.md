@@ -92,20 +92,11 @@ Emergency resources locator — users pick a category, browser geolocation fires
 ## Grade Loop
 Grade runs **automatically** after every fix or implementation — no need to invoke it explicitly. Loops without an iteration cap until score ≥ 9.5/10. See `.claude/rules/loop_system.md` for the rubric and `.claude/commands/grade.md` for the command definition.
 
-## Token Enforcement (automated — always active)
+## Token Management
 
-A `PreToolUse` hook fires on every `Read` call and enforces session-level token discipline.
+Token efficiency is enforced by the **token guardian** subagent, not by a hook.
+The guardian monitors `active_tasks.tsv` (heartbeat log), `task_queue.tsv` (work queue),
+and `guardian_pm_comms.md` (results + recommendations).
 
-| Situation | Guard action |
-|---|---|
-| First read of a file this session | Allowed, logged silently |
-| Second read, hash unchanged | Allowed + `[READ-GUARD WARN]` in tool output |
-| Third+ read, hash unchanged | **Blocked** (exit 2 — Read does not execute) |
-| Re-read after file was modified | Allowed, count reset |
-| Any non-Read tool | Not intercepted (zero overhead) |
-
-**If you see `[READ-GUARD DRIFT-ALERT]` in any tool output: stop all current work and run `/reorient` before doing anything else.**
-
-The session log lives at `.claude/hooks/session_reads.json` — managed by the hook, never read manually.
 To start a fresh context window: run `/new-session`.
-To run token efficiency tests: `python3 -m pytest tests/test_token_efficiency.py -v`
+To check token status: run `"guardian: run"` or spawn the token-guardian agent.

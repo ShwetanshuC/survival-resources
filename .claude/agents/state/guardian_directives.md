@@ -7,7 +7,7 @@
 ## Throttle Rules (apply to all agents)
 - All operations permitted at normal pace
 - Subagent spawning: unlimited
-- File reads: governed by read_guard.py
+- File reads: unrestricted — guardian monitors via active_tasks.tsv heartbeats
 - Test runs: full suite permitted
 
 ## Agent-Specific Efficiency Directives

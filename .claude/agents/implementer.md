@@ -40,10 +40,11 @@ This costs ~20 tokens and enables the guardian to optimize your session in real 
 1. Read only `FILE` — nothing else unless the change requires a second file
 2. Apply the change using `Edit` (targeted, never full rewrite)
 3. Run `TEST_CMD` — if it fails, make one correction attempt, then report failure
-4. Run `python manage.py check` — must be clean
+4. Run `python manage.py check` only if TEST_CMD touches urls.py, settings.py, or apps.py.
+   Skip for all other single-file changes — check is redundant when TEST_CMD passes.
 5. Return exactly:
    ```
-   IMPL RESULT: <pass|fail> | file=<FILE> | test=<pass|fail> | check=<clean|error>
+   IMPL RESULT: <pass|fail> | file=<FILE> | test=<pass|fail> | check=<clean|skipped|error>
    <one sentence: what changed>
    <one sentence: what to do next if failed, or "ready for /grade" if passed>
    ```

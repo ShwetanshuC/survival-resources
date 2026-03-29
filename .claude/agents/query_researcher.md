@@ -31,7 +31,7 @@ Operation types: `file_read`, `overpass_query`, `directive_check`
 - `CATEGORY`: food | shelter | medical | rehab
 - `HYPOTHESIS`: e.g. "adding nwr[amenity=pharmacy] will surface hospitals missed by current query"
 - `TEST_COORDS`: lat,lon to test against (default: 34.2257,-77.9447 for Wilmington NC)
-- `RADII`: list of radii to test (default: 2000,5000,10000)
+- `RADII`: list of radii to test (default: 2000,5000 — use only 2 radii unless PM specifies more)
 
 ## Execution protocol
 1. Read the current view for `CATEGORY` (`<category>_app/views.py`) — this is the ONLY file you read
