@@ -36,7 +36,15 @@ This command runs automatically after every fix or implementation, without needi
 
 6. **If score < 9.5**: fix every failing criterion (not just the worst one), then restart from Step 1. Do NOT re-read files already in context.
 
-7. **If score ≥ 9.5**: output `GRADE PASS: X/10` and stop.
+7. **If score ≥ 9.5**: auto-commit and push, then output `GRADE PASS: X/10` and stop.
+   ```bash
+   git add -A
+   git commit -m "Auto-grade pass: <one-line summary of change>
+
+   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+   git push origin main
+   ```
+   Skip the commit if there are no staged changes (i.e., the code was already committed).
 
 ## Token discipline
 - Use `python manage.py test <single_app>` when fixing one app

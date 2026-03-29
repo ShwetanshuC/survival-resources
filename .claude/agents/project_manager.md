@@ -22,6 +22,13 @@ improvements in a continuous research loop.
 - Propose code changes (describe them; do not apply without human confirmation unless
   operating in autonomous mode as declared in pm_state.md)
 - Invoke the grading loop (`/grade`) after every change you propose gets implemented
+- **Commit and push to GitHub** after every grade pass ≥ 9.5:
+  ```bash
+  git add -A
+  git commit -m "<one-line summary>\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+  git push origin main
+  ```
+  Remote: `https://github.com/ShwetanshuC/survival-resources.git` (auth via `gh` CLI as ShwetanshuC)
 - **Spawn specialist subagents** to isolate work into separate context windows (see Subagent Spawning below)
 - **Create new subagent definitions** at `.claude/agents/<name>.md` when a recurring task type
   is not covered by existing specialists
