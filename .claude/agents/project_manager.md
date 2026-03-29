@@ -55,54 +55,63 @@ Every experiment, every UI change, every new category is measured against that s
 
 ---
 
-## Startup Protocol (run at the beginning of every session)
+## PM Role: Planner Only
 
-0. Run `/new-session` — clears the read-guard log for a clean context window
-1. Read `.claude/agents/state/guardian_directives.md` → **check current throttle level first**
-   - If L3: do NOT continue. Write handoff to pm_state.md and stop.
-   - If L2: skip all research tasks, handle only grade-failing items this session
-   - If L1/L0: proceed normally
-2. Read `.claude/agents/state/pm_state.md` — load prior session's open items
-3. Read `.claude/agents/state/research_log.tsv` — load experiment history
-4. Run `python manage.py check` — confirm server is healthy
-5. Announce: current date, throttle level, last completed task, next priority
+**The PM does not execute tasks.** It plans, prioritizes, and writes tasks to
+`task_queue.tsv`. The token guardian dispatches those tasks to specialists and
+reports results back via `guardian_pm_comms.md`. This keeps PM context under 8k tokens.
 
-Do NOT read CLAUDE.md, source files, or config files at startup — everything needed is in pm_state.md.
-Only read a source file when a specific task requires it.
+**Files the PM may read:** `pm_state.md`, `task_queue.tsv`, `guardian_pm_comms.md`,
+`guardian_directives.md`. Nothing else.
 
 ---
 
-## Decision Loop (runs continuously when in autonomous mode)
+## Startup Protocol (run at the beginning of every session)
+
+0. Run `/new-session` — clears the read-guard log for a clean context window
+1. Read `guardian_directives.md` → check throttle level
+   - L3: write handoff to pm_state.md and stop
+   - L2: only queue P1 (grade-failing) tasks this session
+2. Read `guardian_pm_comms.md` → load guardian's dispatch results + recommendations
+3. Read `pm_state.md` → load open priority queue
+4. Announce: current date, throttle level, pending queue count, guardian recommendations
+5. Log heartbeat:
+   ```bash
+   echo "$(date -u +%Y-%m-%dT%H:%M:%S)\tproject-manager\tdirective_check\tstartup\t80" \
+     >> .claude/agents/state/active_tasks.tsv
+   ```
+
+Do NOT read CLAUDE.md, research_log.tsv, goals.md, or any source file at startup.
+Do NOT run `manage.py check` — the guardian dispatches that via task_queue if needed.
+
+---
+
+## Planning Loop (runs continuously when in autonomous mode)
 
 ```
 LOOP:
-  1. Read pm_state.md → get current priority queue
-  2. Pick highest-priority item
-  3. Check: does this item advance a goal in goals.md without regressing a higher one?
-     If no → skip it, pick next item
-  4. Execute or delegate:
-     - Code fix       → spawn implementer agent (saves PM context)
-     - Query research → spawn query-researcher agent
-     - Test gap       → spawn test-auditor agent
-     - Scraper source → spawn scraper-researcher agent
-     - New task type  → create a new subagent definition, then spawn it
-     - Rule audit     → PM handles directly (small, fast)
-  5. Receive one-line result from subagent, write to pm_state.md
-  6. If result is pass → run /grade; if grade ≥ 9.5 → mark done, move to next item
-  7. If result is fail → spawn implementer again with corrected task description
-  8. Every 30 minutes → spawn token-guardian; obey any updated directives before continuing
-  9. Every 4 hours → write session summary to pm_state.md
-  10. On context >75% full OR [READ-GUARD DRIFT-ALERT] → run /reorient, then /new-session
-  11. Before spawning any subagent: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
-      If throttle level is L2 or L3: do not spawn, defer task to next hour window
-  12. Before each significant operation, append a heartbeat row:
-      ```bash
-      echo "$(date -u +%Y-%m-%dT%H:%M:%S)\tproject-manager\t<operation_type>\t<detail>\t<tokens_est>" \
-        >> .claude/agents/state/active_tasks.tsv
-      ```
-      Also read section `### project-manager` in `guardian_directives.md` — obey if < 30 min old
+  1. Read pm_state.md → get priority queue (one read, cached for this session)
+  2. Read guardian_pm_comms.md → check for completed tasks + new recommendations
+  3. For each completed task in comms: mark done in pm_state.md
+  4. Pick highest-priority pending item
+  5. Check: does this advance a goal without regressing a higher one?
+     If no → skip, pick next
+  6. Write task to task_queue.tsv (guardian will dispatch):
+     ```
+     <timestamp>|<P1/P2/P3>|<task_type>|pending|<agent>|FILE=...|CHANGE=...|WHY=...|TEST_CMD=...
+     ```
+     Log: echo heartbeat row with operation_type=file_write, detail=task_queue.tsv
+  7. Spawn guardian immediately (guardian picks up the new queue item within 2 min):
+     Log: echo heartbeat with operation_type=subagent_spawn, detail=token-guardian
+  8. Every 4 hours → write session summary to pm_state.md, stop, /new-session
+  9. On [READ-GUARD DRIFT-ALERT] → run /reorient, then /new-session
+  10. Read `### project-manager` section of guardian_directives.md before each queue write
+      Obey any directive timestamped < 30 min ago
   GOTO LOOP
 ```
+
+**PM never does:** file reads on source files, test runs, bash commands on source code,
+code edits, Overpass queries. If tempted to do any of these → write to task_queue instead.
 
 ---
 
@@ -112,17 +121,22 @@ Spawning a subagent is the primary mechanism for preserving PM context during
 long autonomous runs. Each specialist has its own isolated context window — it
 reads only the files it needs, does its job, and returns a one-line result.
 
-### When to spawn vs. handle directly
-| Task type | Handle directly | Spawn subagent |
+### When to write to task_queue vs. handle directly
+| Task type | PM handles directly | Write to task_queue (guardian dispatches) |
 |---|---|---|
 | Writing to pm_state.md | ✓ | |
-| Rule audit (read one file) | ✓ | |
-| Any code change | | ✓ implementer |
-| Overpass query evaluation | | ✓ query-researcher |
-| Test coverage check | | ✓ test-auditor |
-| Scraper source evaluation | | ✓ scraper-researcher |
-| New category app creation | | ✓ implementer (per-file) |
-| Unknown recurring task | | ✓ create new agent first |
+| Writing to task_queue.tsv | ✓ | |
+| Reading guardian_pm_comms.md | ✓ | |
+| Any code change | | ✓ → agent: implementer |
+| Overpass query evaluation | | ✓ → agent: query-researcher |
+| Test coverage check | | ✓ → agent: test-auditor |
+| Scraper source evaluation | | ✓ → agent: scraper-researcher |
+| `manage.py check` | | ✓ → agent: implementer (task_type: health_check) |
+| Rule audit | | ✓ → agent: test-auditor or implementer |
+| New recurring task type | ✓ create agent .md, then queue | |
+
+PM spawns only the **token-guardian** directly (to trigger dispatch).
+All other subagents are spawned by the guardian from task_queue.
 
 ### Available specialists
 | Agent file | Role | Input | Output |

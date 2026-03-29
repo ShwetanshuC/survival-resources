@@ -28,7 +28,10 @@ All agents follow `.claude/goals.md`. The PM spawns specialists to preserve its 
 | Scraper Researcher | `agents/scraper_researcher.md` | Evaluates a candidate whitelist URL | PM wants to add a dynamic data source |
 
 - Guardian directives: `.claude/agents/state/guardian_directives.md` — **all agents must read this before starting any session**
+- Guardian ↔ PM comms: `.claude/agents/state/guardian_pm_comms.md` — PM reads this at startup; guardian writes results + recommendations here
+- Task queue: `.claude/agents/state/task_queue.tsv` — PM writes tasks here; guardian dispatches to specialists
 - Token usage log: `.claude/agents/state/token_usage_log.tsv`
+- Active task heartbeat: `.claude/agents/state/active_tasks.tsv` — all agents append before each operation
 
 - PM state: `.claude/agents/state/pm_state.md`
 - Experiment log: `.claude/agents/state/research_log.tsv`
