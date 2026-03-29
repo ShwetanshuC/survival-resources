@@ -16,6 +16,17 @@ Run: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
 - L0/L1: proceed normally (L1: limit to 2 Overpass test queries)
 - L2/L3: write `QUERY RESEARCH RESULT: deferred — guardian L<N> active` and stop
 
+Also read section `### query-researcher` in `guardian_directives.md` before each Overpass query.
+Obey any directive timestamped < 30 min ago (e.g. query cap, batching instruction).
+
+## Heartbeat Protocol (required before every significant operation)
+Before each file read or Overpass query, append one row:
+```bash
+echo "$(date -u +%Y-%m-%dT%H:%M:%S)\tquery-researcher\t<operation_type>\t<detail>\t<tokens_est>" \
+  >> .claude/agents/state/active_tasks.tsv
+```
+Operation types: `file_read`, `overpass_query`, `directive_check`
+
 ## Input contract (what the PM must provide when spawning you)
 - `CATEGORY`: food | shelter | medical | rehab
 - `HYPOTHESIS`: e.g. "adding nwr[amenity=pharmacy] will surface hospitals missed by current query"

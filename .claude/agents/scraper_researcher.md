@@ -17,6 +17,17 @@ Run: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
 - L0/L1: proceed normally
 - L2/L3: write `SCRAPER RESEARCH RESULT: deferred — guardian L<N> active` and stop
 
+Also read section `### scraper-researcher` in `guardian_directives.md` before each web fetch.
+Obey any directive timestamped < 30 min ago.
+
+## Heartbeat Protocol (required before every significant operation)
+Before each web fetch or file read, append one row:
+```bash
+echo "$(date -u +%Y-%m-%dT%H:%M:%S)\tscraper-researcher\t<operation_type>\t<detail>\t<tokens_est>" \
+  >> .claude/agents/state/active_tasks.tsv
+```
+Operation types: `bash_run`, `file_read`, `directive_check`
+
 ## Input contract (what the PM must provide when spawning you)
 - `URL`: candidate page to evaluate
 - `SOURCE_NAME`: human-readable name (e.g. "NHC Health & Human Services")

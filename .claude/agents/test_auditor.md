@@ -17,6 +17,16 @@ Run: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
 - L0/L1: proceed normally
 - L2/L3: write `TEST AUDIT: deferred — guardian L<N> active` and stop
 
+Also read section `### test-auditor` in `guardian_directives.md` before reading the test file.
+Obey any directive timestamped < 30 min ago.
+
+## Heartbeat Protocol (required before every significant operation)
+Before reading the test file, append one row:
+```bash
+echo "$(date -u +%Y-%m-%dT%H:%M:%S)\ttest-auditor\tfile_read\t<APP>/tests.py\t<tokens_est>" \
+  >> .claude/agents/state/active_tasks.tsv
+```
+
 ## Input contract (what the PM must provide when spawning you)
 - `APP`: food_app | shelter_app | medical_app | rehab_app
 - `ENDPOINT`: the URL path to test (e.g. `/api/food/`)

@@ -1,0 +1,2 @@
+timestamp	agent_name	operation_type	detail	tokens_est
+2026-03-29T00:00:00	token-guardian	file_write	active_tasks.tsv (init)	20

@@ -95,6 +95,12 @@ LOOP:
   10. On context >75% full OR [READ-GUARD DRIFT-ALERT] → run /reorient, then /new-session
   11. Before spawning any subagent: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
       If throttle level is L2 or L3: do not spawn, defer task to next hour window
+  12. Before each significant operation, append a heartbeat row:
+      ```bash
+      echo "$(date -u +%Y-%m-%dT%H:%M:%S)\tproject-manager\t<operation_type>\t<detail>\t<tokens_est>" \
+        >> .claude/agents/state/active_tasks.tsv
+      ```
+      Also read section `### project-manager` in `guardian_directives.md` — obey if < 30 min old
   GOTO LOOP
 ```
 

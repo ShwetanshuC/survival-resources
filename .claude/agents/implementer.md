@@ -18,6 +18,18 @@ Run: `tail -n 1 .claude/agents/state/token_usage_log.tsv`
 - L2: read only the files named in INPUT, run only the test command named in INPUT
 - L3: write `IMPL RESULT: deferred — guardian L3 active` and stop immediately
 
+Also read your named section in `guardian_directives.md` (section `### implementer`) before
+each file read or test run. Obey any directive tagged with a timestamp < 30 min ago.
+
+## Heartbeat Protocol (required before every significant operation)
+Before each file read, test run, or bash command, append one row:
+```bash
+echo "$(date -u +%Y-%m-%dT%H:%M:%S)\timplementer\t<operation_type>\t<detail>\t<tokens_est>" \
+  >> .claude/agents/state/active_tasks.tsv
+```
+Operation types: `file_read`, `bash_run`, `test_run_single`, `test_run_full`, `file_write`, `directive_check`
+This costs ~20 tokens and enables the guardian to optimize your session in real time.
+
 ## Input contract (what the PM must provide when spawning you)
 - `FILE`: path to the file to change
 - `CHANGE`: exact description of what to modify (line range + new content or intent)
