@@ -1,175 +1,251 @@
-// Global variables state management
+// ─── Global State ───────────────────────────────────────────────────────────
 var map = null;
 var userMarker = null;
-var resourceMarkers = []; // Keep track of pins so we can clear them easily on back
+var resourceMarkers = [];
 
-// Track the current application state for radius refreshing
 var currentCategory = null;
 var currentLat = null;
 var currentLon = null;
 
-// Helper Map describing frontend strings based on category ID
+// ─── Category Config ─────────────────────────────────────────────────────────
 const categoryTitles = {
-    'shelter': 'Emergency Shelters',
-    'food': 'Food Banks & Kitchens',
-    'medical': 'ERs & Medical Centers',
-    'rehab': 'Rehabilitation Centers'
+    shelter:  'Emergency Shelters',
+    food:     'Food Banks & Kitchens',
+    medical:  'ERs & Medical Centers',
+    rehab:    'Rehabilitation Centers',
 };
 
-/**
- * Triggered when a User clicks any of the 4 category buttons.
- * Hides the home screen, initializes the map, and requests their geolocation.
- */
+const categoryLoadingMsg = {
+    shelter:  'Finding emergency shelters near you…',
+    food:     'Finding food banks and kitchens near you…',
+    medical:  'Finding hospitals and clinics near you…',
+    rehab:    'Finding rehabilitation centers near you…',
+};
+
+// ─── Leaflet Icons ────────────────────────────────────────────────────────────
+// Base icon template — only iconUrl changes between variants
+function _makeIcon(color) {
+    return L.icon({
+        iconUrl:    `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+        shadowUrl:  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize:   [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor:[1, -34],
+        shadowSize: [41, 41],
+    });
+}
+
+const icons = {
+    user:    _makeIcon('violet'),
+    medical: _makeIcon('red'),
+    event:   _makeIcon('orange'),
+    default: _makeIcon('blue'),
+};
+
+function _iconForElement(element) {
+    if (element.type === 'event') return icons.event;
+    if (currentCategory === 'medical')  return icons.medical;
+    return icons.default;
+}
+
+// ─── Popup Builder ────────────────────────────────────────────────────────────
+function _buildPopup(element) {
+    var tags = element.tags || {};
+    var lat  = element.lat;
+    var lon  = element.lon;
+    var name = tags.name || 'Unnamed Location';
+    var lines = [`<b>${name}</b>`];
+
+    // Address — compose from OSM addr:* tags if present
+    var addrParts = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean);
+    if (addrParts.length) {
+        var addrLine = addrParts.join(' ');
+        if (tags['addr:city']) addrLine += ', ' + tags['addr:city'];
+        lines.push(addrLine);
+    } else if (tags.address) {
+        lines.push(tags.address);
+    }
+
+    // Phone — tap-to-call link
+    if (tags.phone) {
+        lines.push(`<a href="tel:${tags.phone}">${tags.phone}</a>`);
+    }
+
+    // Hours — from OSM opening_hours tag if present
+    if (tags.opening_hours) {
+        lines.push(`<small>Hours: ${tags.opening_hours}</small>`);
+    }
+
+    // Scraped event extras
+    if (element.type === 'event') {
+        if (tags.source)     lines.push(`<i>Source: ${tags.source}</i>`);
+        if (tags.source_url) lines.push(`<a href="${tags.source_url}" target="_blank" rel="noopener">View event</a>`);
+    }
+
+    // Navigate button — opens native Maps app with one tap
+    if (lat != null && lon != null) {
+        lines.push(
+            `<a href="geo:${lat},${lon}?q=${lat},${lon}(${encodeURIComponent(name)})" ` +
+            `style="display:inline-block;margin-top:6px;padding:5px 14px;` +
+            `background:#1a6632;color:white;border-radius:4px;text-decoration:none;` +
+            `font-weight:bold;font-size:13px;">&#x1F9ED; Navigate</a>`
+        );
+    }
+
+    return lines.join('<br>');
+}
+
+// ─── Map Lifecycle ────────────────────────────────────────────────────────────
 function openMapCategory(categoryId) {
-    // Document application state
     currentCategory = categoryId;
 
-    // 1) Swap UI displays
     document.getElementById('home-view').style.display = 'none';
-    document.getElementById('map-view').style.display = 'flex';
-    
-    // 2) Set dynamic text
-    document.getElementById('map-title').innerText = categoryTitles[categoryId] || "Resources";
-    
-    // 3) Show Loading Banner
-    let infoBox = document.getElementById('loading-info');
-    infoBox.style.display = 'block';
-    infoBox.innerText = "Finding your location...";
+    document.getElementById('map-view').style.display  = 'flex';
+    document.getElementById('map-title').innerText = categoryTitles[categoryId] || 'Resources';
 
-    // 4) Initialize Map if it doesn't already exist
+    _setInfoBox(categoryLoadingMsg[categoryId] || 'Finding your location…', 'loading');
+
     if (!map) {
         map = L.map('map').setView([0, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
     }
 
-    // 5) Prompt browser location api
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (pos) => onLocationSuccess(pos, categoryId),
-            onLocationError,
+            _onLocationSuccess,
+            _onLocationError,
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     } else {
-        infoBox.innerText = "Geolocation is not supported by your browser.";
+        _setInfoBox('Geolocation is not supported by your browser.', 'error');
     }
 }
 
-/**
- * Triggered when the user hits the Back Button.
- * Shuts down the map view and brings the 4 buttons back to center-screen.
- */
 function closeMap() {
-    // Hide the actual map screen
-    document.getElementById('map-view').style.display = 'none';
-    // Show the standard main container
+    document.getElementById('map-view').style.display  = 'none';
     document.getElementById('home-view').style.display = 'flex';
-    
-    // Clean up old markers
-    if (userMarker) { 
-        map.removeLayer(userMarker); 
-        userMarker = null; 
-    }
-    resourceMarkers.forEach(marker => map.removeLayer(marker));
-    resourceMarkers = []; // Empty the tracking array completely
+
+    if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+    resourceMarkers.forEach(m => map.removeLayer(m));
+    resourceMarkers = [];
 }
 
-/**
- * Fired automatically when `navigator.geolocation` succeeds.
- * Parses the coords, centers the map, and queries the respective backend.
- */
-function onLocationSuccess(pos, categoryId) {
+function _onLocationSuccess(pos) {
     currentLat = pos.coords.latitude;
     currentLon = pos.coords.longitude;
     fetchData();
 }
 
-/**
- * Triggers the radius update manually when user changes dropdown
- */
+function _onLocationError(err) {
+    console.warn(`Location error (${err.code}): ${err.message}`);
+    _setInfoBox('Location access denied. Please allow location permission and try again.', 'error');
+}
+
+// ─── Radius Change ────────────────────────────────────────────────────────────
 function updateRadius() {
-    if (currentCategory && currentLat && currentLon) {
-        // Clear existing pins cleanly before polling again
-        resourceMarkers.forEach(marker => map.removeLayer(marker));
+    if (currentCategory && currentLat !== null && currentLon !== null) {
+        resourceMarkers.forEach(m => map.removeLayer(m));
         resourceMarkers = [];
         fetchData();
     }
 }
 
-/**
- * Generic data fetcher utilizing state variables
- */
+// ─── Core Data Fetch ──────────────────────────────────────────────────────────
 function fetchData() {
-    var infoBox = document.getElementById('loading-info');
     var radius = document.getElementById('radius-select').value;
-    
-    infoBox.style.display = 'block';
-    infoBox.innerText = `Location verified. Searching for ${currentCategory} (${radius}m)...`;
 
-    // Adjust view to zoom closely on user's exact coordinate point
+    _setInfoBox(categoryLoadingMsg[currentCategory] || 'Searching…', 'loading');
+
     map.setView([currentLat, currentLon], 14);
 
-    // Draw the user pin (Red map marker)
     if (!userMarker) {
-        var userIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-        userMarker = L.marker([currentLat, currentLon], {icon: userIcon}).addTo(map)
-            .bindPopup("<b>Your Approximate Location</b>")
+        userMarker = L.marker([currentLat, currentLon], { icon: icons.user })
+            .addTo(map)
+            .bindPopup('<b>Your Location</b>')
             .openPopup();
     }
 
-    // Perform our asynchronous Javascript Fetch exactly against our Django REST API url
-    fetch(`/api/search_resources/?category=${currentCategory}&lat=${currentLat}&lon=${currentLon}&radius=${radius}`)
-        .then(response => response.json())
-        .then(data => {
-            // First evaluate if our backend explicitly threw an Overpass API timeout or server error
-            if (data.error) {
-                infoBox.innerText = `API Search Failed: The region might be too heavily populated to search ${radius} meters at once. Try a smaller radius.`;
-                return; // halt execution
+    // For medical: fire OSM query + scraped events in parallel
+    var osmFetch = fetch(`/api/${currentCategory}/?lat=${currentLat}&lon=${currentLon}&radius=${radius}`)
+        .then(r => r.json());
+
+    var eventFetch = (currentCategory === 'medical')
+        ? fetch('/api/medical/events/').then(r => r.json()).catch(() => ({ elements: [] }))
+        : Promise.resolve({ elements: [] });
+
+    Promise.all([osmFetch, eventFetch])
+        .then(([osmData, eventData]) => {
+            if (osmData.error) {
+                _setInfoBox(
+                    'OSM service temporarily unavailable. Try again in a moment.',
+                    'error'
+                );
+                return;
             }
 
-            // Safety check if the response format contains valid `elements` array from Overpass
-            if (data.elements && data.elements.length > 0) {
-                infoBox.innerText = `Found ${data.elements.length} match(es) cleanly inside ${radius}m range!`;
-                
-                // Overpass typically returns standard "nodes" mapping lat/long directly 
-                data.elements.forEach(element => {
-                    if (element.type === 'node') {
-                        // Default fallback naming just in case the node lacks a dedicated "name" tag
-                        var name = element.tags && element.tags.name ? element.tags.name : "Unnamed Service Provider";
-                        
-                        // Draw standardized Blue Pin for the available resource
-                        var marker = L.marker([element.lat, element.lon]).addTo(map)
-                            .bindPopup(`<b>${name}</b><br>Category: ${categoryTitles[currentCategory]}`);
-                        
-                        // Index into global array so we can wipe them on `Back` execution
-                        resourceMarkers.push(marker);
-                    }
-                });
+            var osmElements   = (osmData.elements   || []).filter(el => el.lat != null && el.lon != null);
+            var eventElements = (eventData.elements || []).filter(el => el.lat != null && el.lon != null);
 
-                // Automatically hide infoBox gently using setTimeout
-                setTimeout(() => { infoBox.style.display = 'none'; }, 4000);
+            osmElements.forEach(el => {
+                var marker = L.marker([el.lat, el.lon], { icon: _iconForElement(el) })
+                    .addTo(map)
+                    .bindPopup(_buildPopup(el));
+                resourceMarkers.push(marker);
+            });
+
+            eventElements.forEach(el => {
+                var marker = L.marker([el.lat, el.lon], { icon: icons.event })
+                    .addTo(map)
+                    .bindPopup(_buildPopup(el));
+                resourceMarkers.push(marker);
+            });
+
+            var total = osmElements.length;
+            var evtCount = eventElements.length;
+
+            if (total === 0 && evtCount === 0) {
+                _setInfoBox(
+                    `No results found within ${_formatRadius(radius)}. Try expanding your search radius.`,
+                    'error'
+                );
             } else {
-                infoBox.innerText = `No resources currently found within a ${radius}m radius.`;
+                var msg = `Found ${total} location${total !== 1 ? 's' : ''}`;
+                if (evtCount > 0) msg += ` + ${evtCount} upcoming event${evtCount !== 1 ? 's' : ''}`;
+                msg += ` within ${_formatRadius(radius)}.`;
+                _setInfoBox(msg, 'success');
+                setTimeout(() => {
+                    document.getElementById('loading-info').style.display = 'none';
+                }, 5000);
             }
         })
-        .catch(err => {
-            console.error("Fetch API error:", err);
-            infoBox.innerText = "Fatal network error fetching resources. Please try again.";
+        .catch(() => {
+            _setInfoBox('Network error. Please check your connection and try again.', 'error');
         });
 }
 
-/**
- * Fired manually by javascript if `navigator.geolocation` crashes or user denies permission.
- */
-function onLocationError(err) {
-    console.warn(`Location Error Code (${err.code}): ${err.message}`);
-    document.getElementById('loading-info').innerText = "Location access denied or failed. Please allow standard browser location permission.";
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function _setInfoBox(msg, state) {
+    var box = document.getElementById('loading-info');
+    box.className = 'info-' + (state || 'loading');
+    box.style.display = 'block';
+    if (state === 'error') {
+        // Show a Retry button so the user doesn't have to go back and reopen
+        box.innerHTML =
+            msg +
+            ' <button onclick="fetchData()" style="margin-left:8px;padding:3px 10px;' +
+            'border-radius:4px;border:none;background:#721c24;color:white;' +
+            'cursor:pointer;font-size:12px;font-weight:bold;">Retry</button>';
+        box.style.pointerEvents = 'auto';
+    } else {
+        box.innerText = msg;
+        box.style.pointerEvents = state === 'loading' ? 'none' : 'auto';
+    }
+}
+
+function _formatRadius(meters) {
+    var m = parseInt(meters, 10);
+    if (m >= 1000) return (m / 1609).toFixed(1) + ' mi';
+    return m + ' m';
 }

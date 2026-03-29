@@ -38,6 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'map_app',
+    'food_app',
+    'shelter_app',
+    'medical_app',
+    'rehab_app',
 ]
 
 MIDDLEWARE = [

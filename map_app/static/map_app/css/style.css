@@ -1,166 +1,189 @@
-/* General Body Styling - Applied to match the image's sage green aesthetic */
+/* ── Reset / Base ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
 body, html {
     margin: 0;
     padding: 0;
     height: 100%;
     font-family: Arial, sans-serif;
-    background-color: #BDBFB3; /* Sage/Khaki background */
+    background-color: #BDBFB3;
 }
 
-/* ----- Home Page UI Styles ----- */
+/* ── Home View ─────────────────────────────────────────────────────────────── */
 #home-view {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
 
-/* Header Styling */
 header {
-    background-color: #5A4E4D; /* Dark brownish-gray */
+    background-color: #5A4E4D;
     color: white;
-    padding: 15px 20px;
+    padding: 14px 20px;
     display: flex;
     align-items: center;
+    gap: 14px;
     justify-content: center;
     position: relative;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
-/* The 'Icon here' placeholder square on the top left of the header */
-.header-icon-placeholder {
-    position: absolute;
-    left: 20px;
-    width: 50px;
-    height: 50px;
-    background-color: #D9D9D9; /* Light gray box */
-    color: black;
-    font-size: 10px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    border: 1px solid #333;
+.header-app-icon {
+    font-size: 28px;
+    opacity: 0.9;
+    flex-shrink: 0;
 }
 
 header h1 {
     margin: 0;
-    font-size: 24px;
-    letter-spacing: 1px;
+    font-size: 22px;
+    letter-spacing: 0.5px;
     text-align: center;
 }
 
-/* Central Container holding the 4 buttons */
 .main-content {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 24px 16px;
 }
 
-/* 2x2 CSS Grid for the buttons */
+/* ── Button Grid ───────────────────────────────────────────────────────────── */
 .button-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px; /* Space between buttons */
-    max-width: 600px;
+    gap: 32px;
+    max-width: 560px;
     width: 100%;
 }
 
-/* Individual Button Container */
 .category-btn {
-    background-color: #1A295C; /* Navy Blue background */
+    background-color: #1A295C;
     border: none;
-    border-radius: 20px;
+    border-radius: 16px;
     padding: 20px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.28);
+    transition: transform 0.18s, box-shadow 0.18s;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* Hover effect to make it feel interactive */
 .category-btn:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+    box-shadow: 0 7px 18px rgba(0,0,0,0.38);
 }
 
-/* White inner square holding the black icon */
+.category-btn:active {
+    transform: translateY(-2px);
+}
+
+/* Medical button gets a subtle red accent so it reads as urgent */
+.btn-medical { background-color: #8B1A1A; }
+.btn-medical:hover { background-color: #A01E1E; }
+
 .icon-box {
     background-color: white;
     width: 100%;
-    aspect-ratio: 1 / 1; /* Keep it perfectly square */
-    max-width: 150px;
+    aspect-ratio: 1 / 1;
+    max-width: 130px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 5px;
-    margin-bottom: 15px;
+    border-radius: 8px;
+    margin-bottom: 14px;
 }
 
-/* The FontAwesome icon inside the box */
 .icon-box i {
-    font-size: 80px;
-    color: black;
+    font-size: 68px;
+    color: #1A1A1A;
 }
 
-/* Button Text Below the Icon */
+.btn-medical .icon-box i { color: #8B1A1A; }
+
 .category-label {
     color: white;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
 }
 
-/* Footer Styling */
+/* ── Footer ────────────────────────────────────────────────────────────────── */
 footer {
-    background-color: #635552; /* Dark brown/gray matching image */
+    background-color: #635552;
     color: white;
     text-align: center;
-    padding: 15px;
-    font-size: 16px;
+    padding: 14px;
+    font-size: 15px;
     font-weight: bold;
 }
 
-footer a {
-    color: white;
-    text-decoration: underline;
-}
+footer a { color: #b8d4f5; }
 
-/* ----- Map View Styles ----- */
+/* ── Map View ──────────────────────────────────────────────────────────────── */
 #map-view {
-    display: none; /* Hidden by default until a button is clicked */
+    display: none;
     flex-direction: column;
     height: 100vh;
+    position: relative;   /* anchor for #loading-info absolute positioning */
 }
 
-/* Top Bar Overlay on Map */
 .map-bar {
     background-color: #1A295C;
     color: white;
-    padding: 10px 20px;
+    padding: 10px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     z-index: 1000;
-    position: relative;
+    flex-shrink: 0;
 }
 
 .back-btn {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.18);
     border: none;
     color: white;
-    padding: 8px 15px;
-    border-radius: 5px;
+    padding: 7px 14px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
+    white-space: nowrap;
 }
 
-.back-btn:hover {
-    background: rgba(255,255,255,0.4);
+.back-btn:hover { background: rgba(255,255,255,0.35); }
+
+.map-title-text {
+    font-weight: bold;
+    font-size: 17px;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radius-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.radius-label {
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.radius-selector select {
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    font-size: 13px;
 }
 
 #map {
@@ -169,17 +192,55 @@ footer a {
     background-color: #e5e5e5;
 }
 
-/* Status Info Overlay on Map */
+/* ── Status Info Banner ────────────────────────────────────────────────────── */
 #loading-info {
     position: absolute;
-    top: 60px;
+    /* Sit just below the map-bar (~50px tall) with a small gap */
+    top: 58px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000;
-    background: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1001;
+    padding: 9px 20px;
+    border-radius: 20px;
     font-weight: bold;
-    display: none; /* Hidden strictly when inactive */
+    font-size: 14px;
+    max-width: 88vw;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    pointer-events: none;   /* don't block map interaction */
+}
+
+/* State variants */
+.info-loading {
+    background: white;
+    color: #333;
+    display: block;
+}
+
+.info-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    display: block;
+}
+
+.info-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    display: block;
+    pointer-events: auto;   /* allow text selection on error messages */
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    header h1 { font-size: 17px; }
+    .button-grid { gap: 18px; }
+    .icon-box i  { font-size: 52px; }
+    .category-label { font-size: 17px; }
+    .map-title-text { font-size: 15px; }
+    #loading-info { font-size: 12px; padding: 7px 14px; }
 }

@@ -1,0 +1,3 @@
+date	commit	category	hypothesis	grade	status	description
+2026-03-28	initial	backend	Replace overpassify regex with raw OverpassQL union query	10	keep	Node-only regex query → nwr union with exact tags; hospitals now found, all radii work
+2026-03-28	initial	infra	Mirror fallback + empty-body retry in execute_overpass_query	10	keep	Primary 504/empty-body → kumi.systems; 403/429 retried; 15-min cache added
