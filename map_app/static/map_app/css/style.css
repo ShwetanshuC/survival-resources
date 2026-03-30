@@ -454,3 +454,44 @@ footer a { color: #b8d4f5; }
 }
 .emergency-btn:hover { background: #a93226; }
 .emergency-btn:focus-visible { outline: 3px solid #e74c3c; outline-offset: 2px; }
+
+/* ── Hotlines Panel ────────────────────────────────────────────────────────── */
+.hotlines-panel {
+    margin-top: 22px;
+    border-top: 1px solid #ddd;
+    padding-top: 14px;
+}
+.hotlines-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+}
+.hotline-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f0f0f0;
+    text-decoration: none;
+    color: inherit;
+}
+.hotline-row:hover { background: #f9f9f9; }
+.hotline-num {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a529c;
+    min-width: 110px;
+}
+.hotline-desc {
+    font-size: 12px;
+    color: #666;
+}
+@media (prefers-color-scheme: dark) {
+    .hotlines-panel { border-top-color: #333; }
+    .hotlines-title { color: #aaa; }
+    .hotline-row { border-bottom-color: #2a2a2a; }
+    .hotline-row:hover { background: #1e1e1e; }
+    .hotline-num { color: #6ea8d6; }
+    .hotline-desc { color: #999; }
+}
