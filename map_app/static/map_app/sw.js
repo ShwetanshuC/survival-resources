@@ -1,6 +1,6 @@
 // Service Worker — cache-first for app shell, network-only for API calls
 // Cache version: bump this string to force cache refresh on deploy
-var CACHE_NAME = 'survival-v1';
+var CACHE_NAME = 'survival-v5';
 
 // App shell assets to cache on install
 var SHELL_URLS = [

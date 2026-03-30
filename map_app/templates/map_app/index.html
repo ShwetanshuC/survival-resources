@@ -27,63 +27,75 @@
         </header>
 
         <div class="main-content">
-            <div class="button-grid">
+            <div class="button-grid-wrapper">
 
-                <button class="category-btn" onclick="openMapCategory('shelter')" aria-label="Find emergency shelters near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-house"></i>
-                    </div>
-                    <span class="category-label">Shelter</span>
-                </button>
+                <div class="row-label">Permanent Resources</div>
+                <div class="button-grid">
 
-                <button class="category-btn" onclick="openMapCategory('food')" aria-label="Find food banks and soup kitchens near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-utensils"></i>
-                    </div>
-                    <span class="category-label">Food</span>
-                </button>
+                    <button class="category-btn" onclick="openMapCategory('food')" aria-label="Find food banks and soup kitchens near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <span class="category-label">Food</span>
+                    </button>
 
-                <button class="category-btn btn-medical" onclick="openMapCategory('medical')" aria-label="Find emergency rooms and medical centers near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-hospital"></i>
-                    </div>
-                    <span class="category-label">ER / Medical</span>
-                </button>
+                    <button class="category-btn" onclick="openMapCategory('shelter')" aria-label="Find emergency shelters near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-house"></i>
+                        </div>
+                        <span class="category-label">Shelter</span>
+                    </button>
 
-                <button class="category-btn" onclick="openMapCategory('rehab')" aria-label="Find rehabilitation centers near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-heart-pulse"></i>
-                    </div>
-                    <span class="category-label">Rehab</span>
-                </button>
+                    <button class="category-btn btn-medical" onclick="openMapCategory('medical')" aria-label="Find emergency rooms and medical centers near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-hospital"></i>
+                        </div>
+                        <span class="category-label">ER / Medical</span>
+                    </button>
 
-                <button class="category-btn" onclick="openMapCategory('food_events')" aria-label="Find food events and pop-ups near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-apple-whole"></i>
-                    </div>
-                    <span class="category-label">Food Events</span>
-                </button>
+                    <button class="category-btn" onclick="openMapCategory('rehab')" aria-label="Find rehabilitation centers near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                        <span class="category-label">Rehab</span>
+                    </button>
 
-                <button class="category-btn" onclick="openMapCategory('shelter_events')" aria-label="Find emergency shelter events near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-campground"></i>
-                    </div>
-                    <span class="category-label">Shelter Events</span>
-                </button>
+                </div>
 
-                <button class="category-btn" onclick="openMapCategory('medical_events')" aria-label="Find medical events and pop-ups near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-stethoscope"></i>
-                    </div>
-                    <span class="category-label">Medical Events</span>
-                </button>
+                <div class="row-separator"></div>
 
-                <button class="category-btn" onclick="openMapCategory('rehab_events')" aria-label="Find rehab and recovery events near me">
-                    <div class="icon-box">
-                        <i class="fa-solid fa-hand-holding-heart"></i>
-                    </div>
-                    <span class="category-label">Rehab Events</span>
-                </button>
+                <div class="row-label">Live Events</div>
+                <div class="button-grid">
+
+                    <button class="category-btn" onclick="openMapCategory('food_events')" aria-label="Find food events and pop-ups near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-apple-whole"></i>
+                        </div>
+                        <span class="category-label">Food Events</span>
+                    </button>
+
+                    <button class="category-btn" onclick="openMapCategory('shelter_events')" aria-label="Find emergency shelter events near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-campground"></i>
+                        </div>
+                        <span class="category-label">Shelter Events</span>
+                    </button>
+
+                    <button class="category-btn" onclick="openMapCategory('medical_events')" aria-label="Find medical events and pop-ups near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-stethoscope"></i>
+                        </div>
+                        <span class="category-label">Medical Events</span>
+                    </button>
+
+                    <button class="category-btn" onclick="openMapCategory('rehab_events')" aria-label="Find rehab and recovery events near me">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-hand-holding-heart"></i>
+                        </div>
+                        <span class="category-label">Rehab Events</span>
+                    </button>
+
+                </div>
 
             </div>
         </div>
@@ -123,6 +135,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="{% static 'map_app/js/script.js' %}?v=17"></script>
+    <script src="{% static 'map_app/js/script.js' %}?v=19"></script>
 </body>
 </html>
