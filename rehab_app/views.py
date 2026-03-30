@@ -25,6 +25,7 @@ def search_rehab(request):
   nwr[healthcare=counselling](around:{radius},{lat},{lon});
   nwr[amenity=social_facility][social_facility=mental_health](around:{radius},{lat},{lon});
   nwr[social_facility=addiction_treatment](around:{radius},{lat},{lon});
+  nwr[healthcare=psychotherapist](around:{radius},{lat},{lon});
 );
 out center qt;"""
 

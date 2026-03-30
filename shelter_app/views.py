@@ -24,6 +24,8 @@ def search_shelter(request):
   nwr[social_facility=shelter](around:{radius},{lat},{lon});
   nwr[amenity=social_facility][social_facility=housing](around:{radius},{lat},{lon});
   nwr[emergency=shelter](around:{radius},{lat},{lon});
+  nwr[social_facility=assisted_living](around:{radius},{lat},{lon});
+  nwr[amenity=social_facility][social_facility=reception_center](around:{radius},{lat},{lon});
 );
 out center qt;"""
 

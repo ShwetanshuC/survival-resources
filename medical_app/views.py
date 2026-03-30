@@ -30,6 +30,9 @@ def search_medical(request):
   nwr[healthcare=hospital](around:{radius},{lat},{lon});
   nwr[healthcare=clinic](around:{radius},{lat},{lon});
   nwr[healthcare=pharmacy](around:{radius},{lat},{lon});
+  nwr[healthcare=centre](around:{radius},{lat},{lon});
+  nwr[healthcare=doctor](around:{radius},{lat},{lon});
+  nwr[amenity=social_facility][social_facility=ambulatory_care](around:{radius},{lat},{lon});
 );
 out center qt;"""
 

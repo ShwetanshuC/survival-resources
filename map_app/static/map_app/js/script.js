@@ -183,6 +183,11 @@ function _buildPopup(element) {
         lines.push(`<small>&#x1F551; ${tags.opening_hours}${badge}</small>`);
     }
 
+    // Call-ahead warning for OSM resources without known hours
+    if (!tags.opening_hours && tags.source_label !== '211 NC' && !element.tags.event_url) {
+        lines.push('<small style="color:#888;font-style:italic;">⚠ Hours unknown — call ahead to confirm availability</small>');
+    }
+
     // 211 service type and description
     if (tags.service_type) {
         lines.push(`<div style="font-size:11px;color:#888;margin:2px 0">${tags.service_type}</div>`);
@@ -447,8 +452,9 @@ function fetchData(autoExpanded) {
                     'error'
                 );
             } else {
-                var msg = `Found ${total} location${total !== 1 ? 's' : ''}`;
-                if (evtCount > 0) msg += ` + ${evtCount} upcoming event${evtCount !== 1 ? 's' : ''}`;
+                var combined = total + evtCount;
+                var msg = `Found <b>${combined}</b> resource${combined !== 1 ? 's' : ''}`;
+                if (total > 0 && evtCount > 0) msg += ` (${total} location${total !== 1 ? 's' : ''} + ${evtCount} event${evtCount !== 1 ? 's' : ''})`;
                 msg += ` within ${_formatRadius(radius)}.`;
                 _setInfoBox(msg, 'success');
                 setTimeout(() => {
@@ -493,7 +499,7 @@ function _setInfoBox(msg, state) {
             '<span>' + msg + '</span>';
         box.style.pointerEvents = 'none';
     } else {
-        box.innerText = msg;
+        box.innerHTML = msg;
         box.style.pointerEvents = 'auto';
     }
 }

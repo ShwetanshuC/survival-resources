@@ -26,6 +26,9 @@ def search_food(request):
   nwr[amenity=social_facility][social_facility=food_distribution](around:{radius},{lat},{lon});
   nwr[amenity=food_bank](around:{radius},{lat},{lon});
   nwr[amenity=community_centre][community_centre=food_pantry](around:{radius},{lat},{lon});
+  nwr[amenity=social_facility][social_facility=food_delivery](around:{radius},{lat},{lon});
+  nwr[shop=food][operator:type=ngo](around:{radius},{lat},{lon});
+  nwr[amenity=community_centre][social_facility](around:{radius},{lat},{lon});
 );
 out center qt;"""
 
