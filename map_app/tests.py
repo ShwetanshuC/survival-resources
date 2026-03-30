@@ -157,6 +157,10 @@ class Fetch211ResourcesTests(TestCase):
         resp.json.return_value = {"results": results}
         return resp
 
+    def _mock_211_empty(self):
+        """Return a mock 211 API search response with no results (for padding extra keyword calls)."""
+        return self._mock_211_resp([])
+
     @patch('map_app.api_211.requests.get')
     def test_returns_empty_when_nominatim_fails(self, mock_get):
         """If reverse-geocode fails to resolve a zip, return [] silently."""
@@ -181,6 +185,8 @@ class Fetch211ResourcesTests(TestCase):
                     "statePhysicalAddress": "NC",
                 }}
             ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(len(result), 1)
@@ -190,10 +196,12 @@ class Fetch211ResourcesTests(TestCase):
 
     @patch('map_app.api_211.requests.get')
     def test_returns_empty_on_api_error(self, mock_get):
-        """Non-200 211 API HTTP response should return [] silently."""
+        """Non-200 211 API HTTP response for all keywords should return [] silently."""
         from map_app.api_211 import fetch_211_resources
         mock_get.side_effect = [
             self._mock_zip_resp("28403"),
+            MagicMock(status_code=403),
+            MagicMock(status_code=403),
             MagicMock(status_code=403),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
@@ -208,6 +216,8 @@ class Fetch211ResourcesTests(TestCase):
             self._mock_211_resp([
                 {"document": {"nameService": "No Coords Org", "address1PhysicalAddress": "456 Oak Ave"}}
             ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(result, [])
@@ -236,6 +246,8 @@ class Fetch211ResourcesTests(TestCase):
                     "statePhysicalAddress": "NC",
                 }}
             ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(result, [])
@@ -256,6 +268,8 @@ class Fetch211ResourcesTests(TestCase):
                     "statePhysicalAddress": "NC",
                 }}
             ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(len(result), 1)
@@ -274,6 +288,8 @@ class Fetch211ResourcesTests(TestCase):
                     "longitudeLocation": "-77.94",
                 }}
             ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(result, [])
@@ -295,9 +311,39 @@ class Fetch211ResourcesTests(TestCase):
                     "statePhysicalAddress": "NC",
                 }}
             ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
         ]
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(result, [])
+
+
+    @patch('map_app.api_211.requests.get')
+    def test_description_and_service_type_in_tags(self, mock_get):
+        """descriptionService and taxonomyTerm must be surfaced as tags."""
+        from map_app.api_211 import fetch_211_resources
+        mock_get.side_effect = [
+            self._mock_zip_resp("28403"),
+            self._mock_211_resp([
+                {"document": {
+                    "nameService": "Emergency Food Pantry",
+                    "latitudeLocation": "34.22",
+                    "longitudeLocation": "-77.94",
+                    "address1PhysicalAddress": "789 Elm St",
+                    "cityPhysicalAddress": "Wilmington",
+                    "statePhysicalAddress": "NC",
+                    "descriptionService": "Provides emergency food.",
+                    "taxonomyTerm": ["Food Banks"],
+                }}
+            ]),
+            self._mock_211_empty(),
+            self._mock_211_empty(),
+        ]
+        result = fetch_211_resources(34.22, -77.94, 2000, "food")
+        self.assertEqual(len(result), 1)
+        tags = result[0]["tags"]
+        self.assertEqual(tags["description"], "Provides emergency food.")
+        self.assertEqual(tags["service_type"], "Food Banks")
 
 
 class MergeDedupTests(TestCase):

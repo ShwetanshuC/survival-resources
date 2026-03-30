@@ -31,12 +31,29 @@ CACHE_TTL = 60 * 15          # 15 minutes for search results
 GEOCODE_CACHE_TTL = 60 * 60  # 1 hour for zip-code lookups
 
 # Map our app categories to 211 keyword searches.
-# Short, high-signal keywords that match 211's own service nomenclature.
+# Each entry is a list of keyword strings — one API call is made per keyword
+# so the 211 taxonomy fragmentation doesn't hide valid results.
 CATEGORY_KEYWORDS = {
-    'food': 'food bank food pantry soup kitchen',
-    'shelter': 'shelter emergency housing',
-    'medical': 'clinic health medical',
-    'rehab': 'substance abuse rehabilitation mental health counseling',
+    'food': [
+        'food bank food pantry',
+        'soup kitchen community meal',
+        'grocery assistance SNAP food',
+    ],
+    'shelter': [
+        'emergency shelter homeless',
+        'transitional housing domestic violence shelter',
+        'warming center overnight shelter',
+    ],
+    'medical': [
+        'free clinic community health center',
+        'mobile health clinic sliding scale',
+        'dental vision low income health',
+    ],
+    'rehab': [
+        'substance abuse addiction treatment',
+        'mental health counseling outpatient',
+        'detox recovery sober living',
+    ],
 }
 
 SOURCE_LABEL = '211 NC'
@@ -89,30 +106,30 @@ def fetch_211_resources(lat, lon, radius_meters, category):
         return cached
 
     radius_miles = max(1, round(radius_meters / 1609))
-    keyword = CATEGORY_KEYWORDS.get(category, '**')
+    keywords = CATEGORY_KEYWORDS.get(category, [category])
 
     try:
-        resp = requests.get(
-            BASE_URL,
-            params={
-                'keyword': keyword,
-                'location': zipcode,
-                'distance': radius_miles,
-                'skip': 0,
-                'top': 50,
-            },
-            headers={'Api-Key': API_KEY, 'Accept': 'application/json'},
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            logger.warning("211 API returned HTTP %s", resp.status_code)
-            return []
-
-        data = resp.json()
-        raw_results = data.get('results') or []
+        all_raw = []
+        for kw in keywords:
+            resp = requests.get(
+                BASE_URL,
+                params={
+                    'keyword': kw,
+                    'location': zipcode,
+                    'distance': radius_miles,
+                    'skip': 0,
+                    'top': 50,
+                },
+                headers={'Api-Key': API_KEY, 'Accept': 'application/json'},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                all_raw.extend(resp.json().get('results') or [])
+            else:
+                logger.warning("211 API returned HTTP %s for keyword=%r", resp.status_code, kw)
 
         results = []
-        for item in raw_results:
+        for item in all_raw:
             doc = item.get('document', {})
             lat_val = doc.get('latitudeLocation')
             lon_val = doc.get('longitudeLocation')
@@ -142,9 +159,12 @@ def fetch_211_resources(lat, lon, radius_meters, category):
                     'name': name,
                     'address': address,
                     'source_label': SOURCE_LABEL,
+                    'description': (doc.get('descriptionService') or '')[:200].strip(),
+                    'service_type': ', '.join(doc.get('taxonomyTerm') or [])[:80],
                 },
             })
 
+        results = _merge_dedup(results)
         cache.set(cache_key, results, CACHE_TTL)
         return results
 

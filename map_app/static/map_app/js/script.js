@@ -183,6 +183,15 @@ function _buildPopup(element) {
         lines.push(`<small>&#x1F551; ${tags.opening_hours}${badge}</small>`);
     }
 
+    // 211 service type and description
+    if (tags.service_type) {
+        lines.push(`<div style="font-size:11px;color:#888;margin:2px 0">${tags.service_type}</div>`);
+    }
+    if (tags.description) {
+        var desc = tags.description.length > 160 ? tags.description.slice(0, 160) + '\u2026' : tags.description;
+        lines.push(`<div style="font-size:12px;color:#555;margin:4px 0;line-height:1.4">${desc}</div>`);
+    }
+
     // Scraped event extras
     if (element.type === 'event') {
         if (tags.event_date) lines.push(`&#x1F4C5; ${tags.event_date}`);
@@ -346,7 +355,7 @@ function updateRadius() {
 }
 
 // ─── Core Data Fetch ──────────────────────────────────────────────────────────
-function fetchData() {
+function fetchData(autoExpanded) {
     var radius = document.getElementById('radius-select').value;
 
     _setInfoBox(categoryLoadingMsg[currentCategory] || 'Searching…', 'loading');
@@ -425,8 +434,16 @@ function fetchData() {
 
             if (total === 0 && evtCount === 0) {
                 var catLabel = categoryTitles[currentCategory] || 'resources';
+                if (!autoExpanded) {
+                    var radiusSel = document.getElementById('radius-select');
+                    if (radiusSel.selectedIndex < radiusSel.options.length - 1) {
+                        radiusSel.selectedIndex += 1;
+                        fetchData(true);
+                        return;
+                    }
+                }
                 _setInfoBox(
-                    `No ${catLabel} found nearby. Try a larger radius using the dropdown above.`,
+                    `No ${catLabel} found within 15.5 miles.`,
                     'error'
                 );
             } else {
