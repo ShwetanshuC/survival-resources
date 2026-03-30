@@ -20,6 +20,7 @@ Returns [] gracefully on any network / parsing error so the main map always load
 import math
 import logging
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,28 @@ CATEGORY_KEYWORDS = {
 }
 
 SOURCE_LABEL = '211 NC'
+
+
+def _fetch_one_keyword(kw, params_base, headers):
+    """Fetch 211 results for a single keyword string.
+
+    Returns a list of raw result dicts, or [] on any error.
+    Designed to be called concurrently via ThreadPoolExecutor.
+    """
+    try:
+        resp = requests.get(
+            BASE_URL,
+            params={**params_base, 'keyword': kw},
+            headers=headers,
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            return resp.json().get('results') or []
+        logger.warning("211 API returned HTTP %s for keyword=%r", resp.status_code, kw)
+        return []
+    except Exception as exc:
+        logger.warning("211 API error for keyword=%r: %s", kw, exc)
+        return []
 
 
 def _get_zip_for_coords(lat, lon):
@@ -109,24 +132,12 @@ def fetch_211_resources(lat, lon, radius_meters, category):
     keywords = CATEGORY_KEYWORDS.get(category, [category])
 
     try:
+        params_base = {'location': zipcode, 'distance': radius_miles, 'skip': 0, 'top': 50}
+        headers = {'Api-Key': API_KEY, 'Accept': 'application/json'}
         all_raw = []
-        for kw in keywords:
-            resp = requests.get(
-                BASE_URL,
-                params={
-                    'keyword': kw,
-                    'location': zipcode,
-                    'distance': radius_miles,
-                    'skip': 0,
-                    'top': 50,
-                },
-                headers={'Api-Key': API_KEY, 'Accept': 'application/json'},
-                timeout=10,
-            )
-            if resp.status_code == 200:
-                all_raw.extend(resp.json().get('results') or [])
-            else:
-                logger.warning("211 API returned HTTP %s for keyword=%r", resp.status_code, kw)
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            for batch in pool.map(lambda kw: _fetch_one_keyword(kw, params_base, headers), keywords):
+                all_raw.extend(batch)
 
         results = []
         for item in all_raw:

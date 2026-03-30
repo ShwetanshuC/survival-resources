@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from django.http import JsonResponse
 from map_app.overpass import execute_overpass_query, normalize_elements, parse_radius
 from map_app.api_211 import fetch_211_resources, _merge_dedup
@@ -29,9 +30,11 @@ def search_rehab(request):
 );
 out center qt;"""
 
-        elements = execute_overpass_query(query, raw=True)
-        elements = normalize_elements(elements)
-        api_results = fetch_211_resources(lat, lon, radius, 'rehab')
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f_osm = pool.submit(execute_overpass_query, query, True)
+            f_211 = pool.submit(fetch_211_resources, lat, lon, radius, 'rehab')
+            elements = normalize_elements(f_osm.result())
+            api_results = f_211.result()
         elements = _merge_dedup(elements + api_results)
         return JsonResponse({'elements': elements})
     except Exception as e:
