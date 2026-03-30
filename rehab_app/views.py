@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from map_app.overpass import execute_overpass_query, normalize_elements, parse_radius
+from map_app.api_211 import fetch_211_resources, _merge_dedup
 
 
 def search_rehab(request):
@@ -20,6 +21,7 @@ def search_rehab(request):
 (
   nwr[healthcare=rehabilitation](around:{radius},{lat},{lon});
   nwr[amenity=social_facility][social_facility=substance_abuse](around:{radius},{lat},{lon});
+  nwr[amenity=social_facility][social_facility=drug_rehabilitation](around:{radius},{lat},{lon});
   nwr[healthcare=counselling](around:{radius},{lat},{lon});
   nwr[amenity=social_facility][social_facility=mental_health](around:{radius},{lat},{lon});
   nwr[social_facility=addiction_treatment](around:{radius},{lat},{lon});
@@ -28,6 +30,13 @@ out center qt;"""
 
         elements = execute_overpass_query(query, raw=True)
         elements = normalize_elements(elements)
+        api_results = fetch_211_resources(lat, lon, radius, 'rehab')
+        elements = _merge_dedup(elements + api_results)
         return JsonResponse({'elements': elements})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def search_rehab_events(request):
+    """Stub endpoint for rehab events — no scraper yet. Always returns empty list."""
+    return JsonResponse({'elements': []})

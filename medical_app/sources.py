@@ -1,7 +1,7 @@
 # Whitelisted local sources for New Hanover County pop-up medical events.
 # Each source defines the URL to scrape, CSS selectors to try for event blocks,
-# and a fallback lat/lon (the organization's own address) used when a specific
-# event address cannot be extracted or geocoded.
+# and service_area_lat/lon (the organization's own address) used ONLY for
+# geographic plausibility checks — never used as event coordinates.
 
 MEDICAL_SOURCES = [
     {
@@ -14,9 +14,8 @@ MEDICAL_SOURCES = [
             ".panel-pane .pane-content",
             "article",
         ],
-        "fallback_address": "230 Government Center Drive, Wilmington, NC 28403",
-        "fallback_lat": 34.2368,
-        "fallback_lon": -77.9461,
+        "service_area_lat": 34.2368,
+        "service_area_lon": -77.9461,
     },
     {
         "name": "Cape Fear Clinic",
@@ -28,9 +27,8 @@ MEDICAL_SOURCES = [
             ".tribe-event-url",
             ".tribe_events_cat",
         ],
-        "fallback_address": "2023 S 16th St, Wilmington, NC 28401",
-        "fallback_lat": 34.2108,
-        "fallback_lon": -77.9194,
+        "service_area_lat": 34.2108,
+        "service_area_lon": -77.9194,
     },
     {
         "name": "Coastal Horizons Center",
@@ -42,9 +40,8 @@ MEDICAL_SOURCES = [
             ".summary",
             "[class*='event']",
         ],
-        "fallback_address": "615 Shipyard Blvd, Wilmington, NC 28412",
-        "fallback_lat": 34.1963,
-        "fallback_lon": -77.9102,
+        "service_area_lat": 34.1963,
+        "service_area_lon": -77.9102,
     },
     {
         "name": "United Way Cape Fear",
@@ -56,8 +53,7 @@ MEDICAL_SOURCES = [
             ".event-wrap",
             ".entry-title",
         ],
-        "fallback_address": "312 Walnut St, Wilmington, NC 28401",
-        "fallback_lat": 34.2357,
-        "fallback_lon": -77.9457,
+        "service_area_lat": 34.2357,
+        "service_area_lon": -77.9457,
     },
 ]

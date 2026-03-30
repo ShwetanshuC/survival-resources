@@ -1,6 +1,7 @@
 import requests
 from django.http import JsonResponse
 from map_app.overpass import execute_overpass_query, normalize_elements, parse_radius
+from map_app.api_211 import fetch_211_resources, _merge_dedup
 
 
 def search_medical(request):
@@ -25,14 +26,18 @@ def search_medical(request):
   nwr[amenity=doctors](around:{radius},{lat},{lon});
   nwr[amenity=urgent_care](around:{radius},{lat},{lon});
   nwr[amenity=emergency](around:{radius},{lat},{lon});
+  nwr[amenity=pharmacy](around:{radius},{lat},{lon});
   nwr[healthcare=hospital](around:{radius},{lat},{lon});
   nwr[healthcare=clinic](around:{radius},{lat},{lon});
+  nwr[healthcare=pharmacy](around:{radius},{lat},{lon});
 );
 out center qt;"""
 
         elements = execute_overpass_query(query, raw=True)
         # Promote center.lat/lon to top-level so the frontend handles all types uniformly
         elements = normalize_elements(elements)
+        api_results = fetch_211_resources(lat, lon, radius, 'medical')
+        elements = _merge_dedup(elements + api_results)
         return JsonResponse({'elements': elements})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

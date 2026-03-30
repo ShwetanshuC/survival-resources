@@ -1,9 +1,15 @@
 import requests as req_lib
 from django.test import TestCase, LiveServerTestCase
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 
 class SearchFoodViewTests(TestCase):
+
+    def setUp(self):
+        # Prevent real network calls to 211 API / Nominatim in all view tests.
+        patcher = patch('food_app.views.fetch_211_resources', return_value=[])
+        self.mock_211 = patcher.start()
+        self.addCleanup(patcher.stop)
 
     @patch('food_app.views.execute_overpass_query')
     def test_returns_elements_on_success(self, mock_query):
@@ -64,13 +70,95 @@ class SearchFoodViewTests(TestCase):
         self.assertNotIn('overpassify', query)
 
 
+class FoodScraperAccuracyTests(TestCase):
+    """Tests for food_app scraper accuracy rules (mirrors medical_app pattern)."""
+
+    def _make_source(self):
+        return {
+            "name": "Test Food Org",
+            "url": "http://example.com/food-events",
+            "event_selectors": [".event"],
+            "service_area_lat": 34.2357,
+            "service_area_lon": -77.9457,
+        }
+
+    def _make_driver_with_blocks(self, texts):
+        blocks = []
+        for t in texts:
+            b = MagicMock()
+            b.text = t
+            blocks.append(b)
+        driver = MagicMock()
+        driver.execute_script.return_value = "complete"
+        driver.find_elements.return_value = blocks
+        return driver
+
+    @patch('food_app.scraper.geocode_address')
+    def test_event_with_no_address_match_is_dropped(self, mock_geo):
+        from food_app.scraper import _scrape_source
+        driver = self._make_driver_with_blocks(["Free Food Event\nCome get groceries\nNo address here"])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(result, [])
+        mock_geo.assert_not_called()
+
+    @patch('food_app.scraper.geocode_address', return_value=None)
+    def test_event_dropped_when_geocoding_fails(self, mock_geo):
+        from food_app.scraper import _scrape_source
+        text = "Free Groceries Event\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(result, [])
+
+    @patch('food_app.scraper.geocode_address', return_value=(40.7128, -74.0060))  # NYC — outside service area
+    def test_event_dropped_when_outside_service_area(self, mock_geo):
+        from food_app.scraper import _scrape_source
+        text = "Food Distribution\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(result, [])
+
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_valid_event_included_with_source_attribution(self, mock_geo):
+        from food_app.scraper import _scrape_source
+        text = "Fresh Produce Giveaway\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        source = self._make_source()
+        result = _scrape_source(driver, source)
+        self.assertEqual(len(result), 1)
+        event = result[0]
+        self.assertIn('lat', event)
+        self.assertIn('lon', event)
+        self.assertEqual(event['tags']['source_label'], source['name'])
+        self.assertEqual(event['tags']['event_url'], source['url'])
+
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_event_with_short_name_is_dropped(self, mock_geo):
+        from food_app.scraper import _scrape_source
+        text = "Fd\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(result, [])
+
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_no_fallback_coords_in_output(self, mock_geo):
+        from food_app.scraper import _scrape_source
+        text = "Community Food Pantry\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        source = self._make_source()
+        result = _scrape_source(driver, source)
+        self.assertEqual(len(result), 1)
+        self.assertAlmostEqual(result[0]['lat'], 34.2250)
+        self.assertAlmostEqual(result[0]['lon'], -77.9450)
+
+
 class FoodLiveServerTests(LiveServerTestCase):
     """Integration tests that spin up a real HTTP server and hit it with requests.
     These catch issues that the Django test client masks: JSON parse failures,
     routing gaps, and real response content-type."""
 
+    @patch('food_app.views.fetch_211_resources', return_value=[])
     @patch('food_app.views.execute_overpass_query')
-    def test_api_returns_valid_json_content_type(self, mock_query):
+    def test_api_returns_valid_json_content_type(self, mock_query, mock_211):
         """Real HTTP GET must return application/json, not HTML (e.g. a 404 page)."""
         mock_query.return_value = []
         r = req_lib.get(
@@ -78,6 +166,14 @@ class FoodLiveServerTests(LiveServerTestCase):
             params={'lat': '34.22', 'lon': '-77.94', 'radius': '2000'},
             timeout=10,
         )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('application/json', r.headers.get('Content-Type', ''))
+        data = r.json()
+        self.assertIn('elements', data)
+
+    def test_events_endpoint_returns_elements_key(self):
+        """Events endpoint must always return {'elements': [...]} even when scraper fails."""
+        r = req_lib.get(f'{self.live_server_url}/api/food/events/', timeout=45)
         self.assertEqual(r.status_code, 200)
         self.assertIn('application/json', r.headers.get('Content-Type', ''))
         data = r.json()

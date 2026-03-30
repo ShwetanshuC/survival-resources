@@ -1,0 +1,10 @@
+{
+  "name": "Survival Resources",
+  "short_name": "Survival",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a529c",
+  "description": "Find free food, shelter, medical care, and rehabilitation centers near you.",
+  "icons": []
+}

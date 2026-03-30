@@ -68,12 +68,19 @@ def execute_overpass_query(query_str, raw=False):
 
 def normalize_elements(elements):
     """Lift center.lat/center.lon to top-level for way/relation elements returned
-    by 'out center'. Nodes already have top-level lat/lon; this is a no-op for them."""
+    by 'out center'. Nodes already have top-level lat/lon; this is a no-op for them.
+
+    Also drops any element with a missing or blank 'name' tag so unnamed OSM
+    mystery pins never reach the map.
+    """
+    result = []
     for el in elements:
         if 'center' in el and 'lat' not in el:
             el['lat'] = el['center']['lat']
             el['lon'] = el['center']['lon']
-    return elements
+        if el.get('tags', {}).get('name', '').strip():
+            result.append(el)
+    return result
 
 
 def parse_radius(value, default=2000):

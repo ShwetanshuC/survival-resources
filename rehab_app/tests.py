@@ -5,6 +5,12 @@ from unittest.mock import patch
 
 class SearchRehabViewTests(TestCase):
 
+    def setUp(self):
+        # Prevent real network calls to 211 API / Nominatim in all view tests.
+        patcher = patch('rehab_app.views.fetch_211_resources', return_value=[])
+        self.mock_211 = patcher.start()
+        self.addCleanup(patcher.stop)
+
     @patch('rehab_app.views.execute_overpass_query')
     def test_returns_elements_on_success(self, mock_query):
         mock_query.return_value = [{'type': 'node', 'id': 4, 'lat': 40.7, 'lon': -74.0, 'tags': {'name': 'Rehab Center'}}]
@@ -60,11 +66,39 @@ class SearchRehabViewTests(TestCase):
         self.assertNotIn('Regex', query)
 
 
+class SearchRehabEventsViewTests(TestCase):
+    """Tests for the /api/rehab/events/ stub endpoint."""
+
+    def test_events_returns_200_with_elements_key(self):
+        """Stub endpoint must always return 200 with an elements key."""
+        response = self.client.get('/api/rehab/events/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('elements', response.json())
+
+    def test_events_returns_empty_list(self):
+        """Stub endpoint must return an empty elements list (no scraper yet)."""
+        response = self.client.get('/api/rehab/events/')
+        self.assertEqual(response.json()['elements'], [])
+
+    def test_events_ignores_lat_lon_params(self):
+        """Stub endpoint accepts lat/lon params without error."""
+        response = self.client.get('/api/rehab/events/', {'lat': '34.22', 'lon': '-77.94', 'radius': '2000'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('elements', response.json())
+
+    def test_events_ignores_invalid_radius(self):
+        """Stub endpoint accepts invalid radius param without error."""
+        response = self.client.get('/api/rehab/events/', {'lat': '34.22', 'lon': '-77.94', 'radius': 'bad'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['elements'], [])
+
+
 class RehabLiveServerTests(LiveServerTestCase):
     """Integration tests that spin up a real HTTP server and hit it with requests."""
 
+    @patch('rehab_app.views.fetch_211_resources', return_value=[])
     @patch('rehab_app.views.execute_overpass_query')
-    def test_api_returns_valid_json_content_type(self, mock_query):
+    def test_api_returns_valid_json_content_type(self, mock_query, mock_211):
         """Real HTTP GET must return application/json, not HTML (e.g. a 404 page)."""
         mock_query.return_value = []
         r = req_lib.get(

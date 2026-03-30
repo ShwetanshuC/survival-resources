@@ -1,5 +1,5 @@
 """
-Whitelist Web Scraper — New Hanover County Medical Pop-Up Events
+Whitelist Web Scraper — New Hanover County Food Events
 
 Uses Selenium (headless Chrome) to load JS-rendered event pages from the
 sources defined in sources.py, extracts event text, attempts to geocode any
@@ -25,11 +25,11 @@ import re
 import logging
 import requests
 from django.core.cache import cache
-from .sources import MEDICAL_SOURCES
+from .sources import FOOD_SOURCES
 
 logger = logging.getLogger(__name__)
 
-CACHE_KEY = "medical_scraped_events"
+CACHE_KEY = "food_scraped_events"
 CACHE_TTL = 60 * 30  # 30 minutes
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
@@ -141,7 +141,7 @@ def _scrape_source(driver, source):
             if len(name) < 5:
                 continue
 
-            # Rule 2: address match required
+            # Rule 1: address match required
             match = ADDRESS_RE.search(text)
             if not match:
                 continue
@@ -164,7 +164,6 @@ def _scrape_source(driver, source):
                 )
                 continue
 
-            # Rule 5: source attribution on every event
             events.append({
                 "type": "event",
                 "lat": lat,
@@ -196,12 +195,12 @@ def scrape_all_sources():
     try:
         driver = _build_driver()
     except (ImportError, Exception) as e:
-        logger.warning("Selenium unavailable, skipping event scrape: %s", e)
+        logger.warning("Selenium unavailable, skipping food event scrape: %s", e)
         return []
 
     all_events = []
     try:
-        for source in MEDICAL_SOURCES:
+        for source in FOOD_SOURCES:
             all_events.extend(_scrape_source(driver, source))
     finally:
         driver.quit()
