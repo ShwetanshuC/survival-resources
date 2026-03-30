@@ -313,6 +313,7 @@ function _buildResultsList(elements) {
 // ─── Map Lifecycle ────────────────────────────────────────────────────────────
 function openMapCategory(categoryId) {
     currentCategory = categoryId;
+    try { localStorage.setItem('lastCategory', categoryId); } catch(e) {}
 
     document.getElementById('home-view').style.display = 'none';
     document.getElementById('map-view').style.display  = 'flex';
@@ -586,6 +587,112 @@ function _formatRadius(meters) {
     if (m >= 1000) return (m / 1609).toFixed(1) + ' mi';
     return m + ' m';
 }
+
+// ─── Get Help Now (emergency multi-category fetch) ────────────────────────────
+function getHelpNow() {
+    document.getElementById('home-view').style.display = 'none';
+    document.getElementById('map-view').style.display  = 'flex';
+    document.getElementById('map-title').textContent   = 'Nearest Help';
+
+    var shareBtn = document.getElementById('share-btn');
+    if (shareBtn) shareBtn.style.display = 'none';
+
+    _setInfoBox('Finding your location…', 'loading');
+
+    if (!navigator.geolocation) {
+        _setInfoBox('Geolocation not supported.', 'error');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude;
+        var lon = pos.coords.longitude;
+        currentLat = lat;
+        currentLon = lon;
+
+        if (!map) {
+            map = L.map('map').setView([lat, lon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }).addTo(map);
+        } else {
+            map.setView([lat, lon], 13);
+        }
+
+        if (!userMarker) {
+            userMarker = L.marker([lat, lon], { icon: icons.user })
+                .addTo(map)
+                .bindPopup('<b>Your Location</b>');
+        }
+
+        _setInfoBox('Searching nearby…', 'loading');
+
+        var radius = 5000;
+        var categories = ['food', 'shelter', 'medical'];
+        var promises = categories.map(function(cat) {
+            return fetch('/api/' + cat + '/?lat=' + lat + '&lon=' + lon + '&radius=' + radius)
+                .then(function(r) { return r.json(); })
+                .then(function(d) { return (d.elements || []).filter(function(el) { return el.lat != null && el.lon != null; }); })
+                .catch(function() { return []; });
+        });
+
+        Promise.all(promises).then(function(results) {
+            var all = [].concat.apply([], results);
+            if (all.length === 0) {
+                _setInfoBox('No resources found within 3.1 miles. Try individual categories.', 'error');
+                return;
+            }
+
+            all.forEach(function(el) {
+                el._distMiles = _haversineMiles(lat, lon, el.lat, el.lon);
+            });
+            all.sort(function(a, b) { return a._distMiles - b._distMiles; });
+
+            var nearest = all[0];
+            var tags = nearest.tags || {};
+            var name = tags.name || tags.operator || 'Nearest Resource';
+            var distStr = _formatDistance(nearest._distMiles);
+
+            var marker = L.marker([nearest.lat, nearest.lon], { icon: icons.default })
+                .addTo(map)
+                .bindPopup(_buildPopup(nearest))
+                .openPopup();
+            resourceMarkers.push(marker);
+            map.setView([nearest.lat, nearest.lon], 15);
+
+            _setInfoBox('<b>' + name + '</b> — ' + distStr, 'success');
+        });
+    }, function() {
+        _handleLocationDenied();
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+}
+
+// ─── DOMContentLoaded — restore last category shortcut ───────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    var validCategories = Object.keys(categoryTitles);
+    var lastCat;
+    try { lastCat = localStorage.getItem('lastCategory'); } catch(e) { lastCat = null; }
+    if (lastCat && validCategories.indexOf(lastCat) !== -1) {
+        var shortcut = document.createElement('p');
+        shortcut.id = 'last-category-shortcut';
+        shortcut.style.cssText =
+            'text-align:center;margin:0 0 10px;font-size:13px;color:#666;';
+        var link = document.createElement('a');
+        link.href = '#';
+        link.textContent = 'Search again: ' + (categoryTitles[lastCat] || lastCat);
+        link.style.cssText = 'color:#555;text-decoration:underline;cursor:pointer;';
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            openMapCategory(lastCat);
+        });
+        shortcut.appendChild(link);
+
+        // Insert after the emergency button inside .button-grid-wrapper
+        var wrapper = document.querySelector('.button-grid-wrapper');
+        if (wrapper) {
+            wrapper.insertBefore(shortcut, wrapper.firstChild);
+        }
+    }
+});
 
 // ─── Service Worker Registration ──────────────────────────────────────────────
 if ('serviceWorker' in navigator) {

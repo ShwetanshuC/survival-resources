@@ -436,3 +436,21 @@ footer a { color: #b8d4f5; }
     .results-row:hover { background: #2a2a2a; }
     .results-row-name { color: #eee; }
 }
+
+/* ── Emergency Button ──────────────────────────────────────────────────────── */
+.emergency-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    margin-bottom: 18px;
+    background: #c0392b;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+}
+.emergency-btn:hover { background: #a93226; }
+.emergency-btn:focus-visible { outline: 3px solid #e74c3c; outline-offset: 2px; }
