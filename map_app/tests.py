@@ -278,6 +278,27 @@ class Fetch211ResourcesTests(TestCase):
         result = fetch_211_resources(34.22, -77.94, 2000, "food")
         self.assertEqual(result, [])
 
+    @patch('map_app.api_211.requests.get')
+    def test_none_address_field_does_not_crash(self, mock_get):
+        """Records where address1PhysicalAddress is None (key present, value null)
+        must be dropped cleanly — not raise AttributeError on .strip()."""
+        from map_app.api_211 import fetch_211_resources
+        mock_get.side_effect = [
+            self._mock_zip_resp("28403"),
+            self._mock_211_resp([
+                {"document": {
+                    "nameService": "Null Address Org",
+                    "latitudeLocation": "34.22",
+                    "longitudeLocation": "-77.94",
+                    "address1PhysicalAddress": None,
+                    "cityPhysicalAddress": None,
+                    "statePhysicalAddress": "NC",
+                }}
+            ]),
+        ]
+        result = fetch_211_resources(34.22, -77.94, 2000, "food")
+        self.assertEqual(result, [])
+
 
 class MergeDedupTests(TestCase):
     """Tests for _merge_dedup proximity deduplication."""

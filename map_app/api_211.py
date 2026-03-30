@@ -122,15 +122,15 @@ def fetch_211_resources(lat, lon, radius_meters, category):
             if not name:
                 continue
             address_parts = [
-                doc.get('address1PhysicalAddress', ''),
-                doc.get('cityPhysicalAddress', ''),
-                doc.get('statePhysicalAddress', ''),
+                doc.get('address1PhysicalAddress') or '',
+                doc.get('cityPhysicalAddress') or '',
+                doc.get('statePhysicalAddress') or '',
             ]
             address = ', '.join(p for p in address_parts if p).strip(', ')
 
             # Drop records with no physical address or a PO Box address —
             # these cannot be mapped to a useful map pin.
-            physical = doc.get('address1PhysicalAddress', '').strip()
+            physical = (doc.get('address1PhysicalAddress') or '').strip()
             if not physical or 'po box' in physical.lower():
                 continue
 
