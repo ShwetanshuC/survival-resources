@@ -242,6 +242,74 @@ function _buildPopup(element) {
     return lines.join('<br>');
 }
 
+// ─── Results List Builder ─────────────────────────────────────────────────────
+function _buildResultsList(elements) {
+    var list = document.getElementById('results-list');
+    if (!list) return;
+    if (!elements || elements.length === 0) {
+        list.style.display = 'none';
+        list.innerHTML = '';
+        return;
+    }
+    list.innerHTML = '';
+    // Show at most 20 rows
+    elements.slice(0, 20).forEach(function(el, idx) {
+        var tags = el.tags || {};
+        var name = tags.name || tags.operator || 'Unnamed';
+        var distMi = (el._distMiles !== undefined) ? _formatDistance(el._distMiles) : '';
+        var row = document.createElement('div');
+        row.className = 'results-row';
+        row.setAttribute('tabindex', '0');
+        row.setAttribute('role', 'button');
+        row.setAttribute('aria-label', name + (distMi ? ', ' + distMi : ''));
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'results-row-name';
+        nameEl.textContent = name;
+
+        var distEl = document.createElement('div');
+        distEl.className = 'results-row-dist';
+        distEl.textContent = distMi;
+
+        row.appendChild(nameEl);
+        row.appendChild(distEl);
+
+        if (tags.phone) {
+            var callBtn = document.createElement('a');
+            callBtn.href = 'tel:' + tags.phone;
+            callBtn.className = 'results-row-btn results-row-call';
+            callBtn.textContent = 'Call';
+            callBtn.setAttribute('aria-label', 'Call ' + name);
+            callBtn.addEventListener('click', function(e) { e.stopPropagation(); });
+            row.appendChild(callBtn);
+        }
+
+        var navBtn = document.createElement('a');
+        navBtn.href = 'https://www.google.com/maps/dir/?api=1&destination=' + el.lat + ',' + el.lon;
+        navBtn.target = '_blank';
+        navBtn.rel = 'noopener';
+        navBtn.className = 'results-row-btn results-row-nav';
+        navBtn.textContent = 'Go';
+        navBtn.setAttribute('aria-label', 'Navigate to ' + name);
+        navBtn.addEventListener('click', function(e) { e.stopPropagation(); });
+        row.appendChild(navBtn);
+
+        // Click row → pan map + open popup (using marker index)
+        row.addEventListener('click', function() {
+            if (resourceMarkers[idx]) {
+                map.panTo(resourceMarkers[idx].getLatLng());
+                resourceMarkers[idx].openPopup();
+            }
+        });
+        row.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { row.click(); e.preventDefault(); }
+        });
+
+        list.appendChild(row);
+    });
+    list.style.display = '';
+}
+
 // ─── Map Lifecycle ────────────────────────────────────────────────────────────
 function openMapCategory(categoryId) {
     currentCategory = categoryId;
@@ -281,6 +349,9 @@ function closeMap() {
     if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
     resourceMarkers.forEach(m => map.removeLayer(m));
     resourceMarkers = [];
+
+    var list = document.getElementById('results-list');
+    if (list) { list.style.display = 'none'; list.innerHTML = ''; }
 }
 
 function _onLocationSuccess(pos) {
@@ -403,16 +474,28 @@ function fetchData(autoExpanded) {
             var osmElements   = (osmData.elements   || []).filter(el => el.lat != null && el.lon != null);
             var eventElements = (eventData.elements || []).filter(el => el.lat != null && el.lon != null);
 
+            // Annotate each element with its distance in miles from the user
+            if (currentLat !== null && currentLon !== null) {
+                osmElements.forEach(el => {
+                    el._distMiles = _haversineMiles(currentLat, currentLon, el.lat, el.lon);
+                });
+                eventElements.forEach(el => {
+                    el._distMiles = _haversineMiles(currentLat, currentLon, el.lat, el.lon);
+                });
+            }
+
             // Sort by distance (closest first) so nearest pins are rendered on top
             function _byDistance(a, b) {
                 if (currentLat === null || currentLon === null) return 0;
-                return _haversineMiles(currentLat, currentLon, a.lat, a.lon) -
-                       _haversineMiles(currentLat, currentLon, b.lat, b.lon);
+                return (a._distMiles || 0) - (b._distMiles || 0);
             }
             osmElements.sort(_byDistance);
             eventElements.sort(_byDistance);
 
-            osmElements.forEach(el => {
+            // Merge into one array (OSM first, then events) for the results list
+            var allElements = osmElements.concat(eventElements);
+
+            allElements.forEach(el => {
                 var marker = L.marker([el.lat, el.lon], { icon: _iconForElement(el) })
                     .addTo(map)
                     .bindPopup(_buildPopup(el));
@@ -420,13 +503,7 @@ function fetchData(autoExpanded) {
                 resourceMarkers.push(marker);
             });
 
-            eventElements.forEach(el => {
-                var marker = L.marker([el.lat, el.lon], { icon: _iconForElement(el) })
-                    .addTo(map)
-                    .bindPopup(_buildPopup(el));
-                marker.on('click', function() { map.panTo([el.lat, el.lon]); });
-                resourceMarkers.push(marker);
-            });
+            _buildResultsList(allElements);
 
             // Auto-fit map to show all results
             if (resourceMarkers.length > 0) {
