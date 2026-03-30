@@ -282,6 +282,43 @@ footer a { color: #b8d4f5; }
     pointer-events: auto;   /* allow text selection on error messages */
 }
 
+/* ── Open Now Toggle ───────────────────────────────────────────────────────── */
+.open-now-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: #ddd;
+}
+.open-now-toggle input { cursor: pointer; }
+@media (prefers-color-scheme: dark) {
+    .open-now-toggle { color: #ddd; }
+}
+
+/* ── Print Button ──────────────────────────────────────────────────────────── */
+.print-btn {
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.print-btn:hover { background: rgba(255,255,255,0.35); }
+.print-btn:focus-visible {
+    outline: 3px solid #FFD700;
+    outline-offset: 2px;
+}
+
 /* ── Share Button ──────────────────────────────────────────────────────────── */
 .share-btn {
     background: rgba(255,255,255,0.18);

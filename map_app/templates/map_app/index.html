@@ -147,8 +147,15 @@
                     <option value="25000">15.5 mi</option>
                 </select>
             </div>
+            <label class="open-now-toggle" title="Show only currently open resources">
+                <input type="checkbox" id="open-now-check" onchange="applyOpenNowFilter()">
+                <span>Open now</span>
+            </label>
             <button id="share-btn" class="share-btn" onclick="shareCurrentView()" title="Share this page" style="display:none;" aria-label="Share this page">
                 <i class="fa-solid fa-share-nodes"></i>
+            </button>
+            <button class="print-btn" onclick="printResourceList()" title="Print resource list" aria-label="Print resource list" style="display:none;" id="print-btn">
+                <i class="fa-solid fa-print"></i>
             </button>
         </div>
 
@@ -160,6 +167,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="{% static 'map_app/js/script.js' %}?v=26"></script>
+    <script src="{% static 'map_app/js/script.js' %}?v=27"></script>
 </body>
 </html>
