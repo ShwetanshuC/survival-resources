@@ -185,6 +185,7 @@ function _buildPopup(element) {
 
     // Scraped event extras
     if (element.type === 'event') {
+        if (tags.event_date) lines.push(`&#x1F4C5; ${tags.event_date}`);
         if (tags.source)     lines.push(`<i>Source: ${tags.source}</i>`);
         if (tags.source_url) lines.push(`<a href="${tags.source_url}" target="_blank" rel="noopener">View event</a>`);
     }
@@ -276,7 +277,63 @@ function _onLocationSuccess(pos) {
 
 function _onLocationError(err) {
     console.warn(`Location error (${err.code}): ${err.message}`);
-    _setInfoBox('Location access denied. Please allow location permission and try again.', 'error');
+    _handleLocationDenied();
+}
+
+function _handleLocationDenied() {
+    var box = document.getElementById('loading-info');
+    box.className = 'info-error';
+    box.style.display = 'block';
+    box.style.pointerEvents = 'auto';
+    box.innerHTML =
+        'Location access denied.' +
+        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
+        '<input type="text" id="zip-input" placeholder="Enter zip code" maxlength="10" ' +
+        'style="padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px;' +
+        'width:130px;box-sizing:border-box;" ' +
+        'onkeydown="if(event.key===\'Enter\')_geocodeZip(this.value.trim())">' +
+        '<button onclick="_geocodeZip(document.getElementById(\'zip-input\').value.trim())" ' +
+        'style="padding:5px 14px;background:#1a529c;color:white;border:none;border-radius:4px;' +
+        'font-size:14px;font-weight:bold;cursor:pointer;">Go</button>' +
+        '</div>';
+}
+
+function _geocodeZip(zip) {
+    if (!zip) return;
+    var box = document.getElementById('loading-info');
+    box.className = 'info-loading';
+    box.style.display = 'flex';
+    box.style.pointerEvents = 'none';
+    box.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Looking up zip code…</span>';
+
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(zip) +
+          '&format=json&limit=1&countrycodes=us')
+        .then(function(r) { return r.json(); })
+        .then(function(results) {
+            if (!results || results.length === 0) {
+                box.className = 'info-error';
+                box.style.display = 'block';
+                box.style.pointerEvents = 'auto';
+                box.innerHTML =
+                    'Zip code not found. Try again.' +
+                    '<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
+                    '<input type="text" id="zip-input" placeholder="Enter zip code" maxlength="10" ' +
+                    'style="padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px;' +
+                    'width:130px;box-sizing:border-box;" ' +
+                    'onkeydown="if(event.key===\'Enter\')_geocodeZip(this.value.trim())">' +
+                    '<button onclick="_geocodeZip(document.getElementById(\'zip-input\').value.trim())" ' +
+                    'style="padding:5px 14px;background:#1a529c;color:white;border:none;border-radius:4px;' +
+                    'font-size:14px;font-weight:bold;cursor:pointer;">Go</button>' +
+                    '</div>';
+                return;
+            }
+            currentLat = parseFloat(results[0].lat);
+            currentLon = parseFloat(results[0].lon);
+            fetchData();
+        })
+        .catch(function() {
+            _setInfoBox('Could not reach geocoding service. Check your connection and try again.', 'error');
+        });
 }
 
 // ─── Radius Change ────────────────────────────────────────────────────────────
