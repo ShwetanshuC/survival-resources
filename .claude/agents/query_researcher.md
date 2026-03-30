@@ -37,7 +37,7 @@ Operation types: `file_read`, `overpass_query`, `directive_check`
 1. Read the current view for `CATEGORY` (`<category>_app/views.py`) — this is the ONLY file you read
 2. Extract the current Overpass query
 3. Construct the proposed new query (add the hypothesis tag)
-4. For each radius in `RADII`, run both queries against `TEST_COORDS` via curl or python requests
+4. For each radius in `RADII` (max 2), run both queries against `TEST_COORDS` via curl or python requests
    — use the Overpass API directly, not the Django endpoint
 5. Record element counts for current vs proposed query at each radius
 6. Return exactly:
@@ -50,7 +50,6 @@ Operation types: `file_read`, `overpass_query`, `directive_check`
    |--------|--------------|----------------|-------|
    | 2000   | N            | N              | +/-N  |
    | 5000   | N            | N              | +/-N  |
-   | 10000  | N            | N              | +/-N  |
 
    Recommendation: <keep if delta > 0 at majority of radii, discard otherwise>
    Next step for PM: <one sentence>

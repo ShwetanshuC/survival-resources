@@ -96,22 +96,24 @@ LOOP:
   4. Pick highest-priority pending item
   5. Check: does this advance a goal without regressing a higher one?
      If no → skip, pick next
-  6. Write task to task_queue.tsv (guardian will dispatch):
+  6. Write ONE task to task_queue.tsv — the single highest-priority item only:
      ```
      <timestamp>|<P1/P2/P3>|<task_type>|pending|<agent>|FILE=...|CHANGE=...|WHY=...|TEST_CMD=...
      ```
-     Log: echo heartbeat row with operation_type=file_write, detail=task_queue.tsv
-  7. Spawn guardian immediately (guardian picks up the new queue item within 2 min):
-     Log: echo heartbeat with operation_type=subagent_spawn, detail=token-guardian
+  7. Spawn guardian once. Then STOP this PM session — write handoff to pm_state.md and exit.
+     The next PM session begins only after guardian_pm_comms.md shows that task is complete.
   8. Every 4 hours → write session summary to pm_state.md, stop, /new-session
   9. On context > 75% full → run /reorient, then /new-session
   10. Read `### project-manager` section of guardian_directives.md before each queue write
       Obey any directive timestamped < 30 min ago
-  GOTO LOOP
+  GOTO LOOP (next session only — not immediately)
 ```
 
 **PM never does:** file reads on source files, test runs, bash commands on source code,
 code edits, Overpass queries. If tempted to do any of these → write to task_queue instead.
+
+**PM queues exactly ONE task per session and stops.** Writing multiple tasks causes the
+guardian to spawn multiple agents simultaneously, which exhausts the usage quota in minutes.
 
 ---
 
@@ -131,7 +133,7 @@ reads only the files it needs, does its job, and returns a one-line result.
 | Overpass query evaluation | | ✓ → agent: query-researcher |
 | Test coverage check | | ✓ → agent: test-auditor |
 | Scraper source evaluation | | ✓ → agent: scraper-researcher |
-| `manage.py check` | | ✓ → agent: implementer (task_type: health_check) |
+| `manage.py check` (urls/settings/apps change only) | | ✓ → agent: implementer (task_type: health_check) |
 | Rule audit | | ✓ → agent: test-auditor or implementer |
 | New recurring task type | ✓ create agent .md, then queue | |
 

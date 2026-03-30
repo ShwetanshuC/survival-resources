@@ -56,17 +56,20 @@ Never loop. Never sleep and re-check. One session = one pass. The PM re-spawns y
 
 ## Dispatch Check
 
-From `task_queue.tsv` tail, find rows where `status=pending`:
+From `task_queue.tsv` tail, find rows where `status=pending`.
 
-- L0/L1: dispatch all pending, highest priority first
-- L2: dispatch P1 only
-- L3: mark all as `deferred`, stop
+**Dispatch exactly ONE task per guardian session — the highest priority pending row.**
 
-For each pending task, spawn the named specialist with the params from the row.
-Update the row status to `dispatched` inline (one write to task_queue.tsv covering
-all status changes — not one write per row).
+- L0/L1: dispatch the single top-priority pending task
+- L2: dispatch only if it is P1
+- L3: mark all pending as `deferred`, stop
 
-When the specialist returns, append its result to the row and set status=`complete`.
+Spawn the specialist. Wait for it to return. Update that row's status to `complete` or
+`failed`. Then stop — do not dispatch the next task. The PM will re-spawn the guardian
+in 2 minutes, which will pick up the next item.
+
+**Why one at a time:** each subagent spawn consumes from the shared usage quota.
+Dispatching 7 tasks simultaneously = 7× burn rate = usage limit exhausted in minutes.
 
 ---
 

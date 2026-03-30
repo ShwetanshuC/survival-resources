@@ -1,2 +1,12 @@
 timestamp	agent_name	operation_type	detail	tokens_est
 2026-03-29T00:00:00	token-guardian	file_write	active_tasks.tsv (init)	20
+2026-03-29T15:07:34	token-guardian	directive_check	guardian_directives.md	50
+2026-03-29T15:07:34	token-guardian	file_read	task_queue.tsv	30
+2026-03-29T15:07:34	token-guardian	file_read	token_usage_log.tsv	30
+2026-03-29T15:07:34	token-guardian	file_read	all agent .md files (5)	400
+2026-03-29T15:07:34	token-guardian	file_write	implementer.md (check skip rule)	40
+2026-03-29T15:07:34	token-guardian	file_write	query_researcher.md (radii default 2)	40
+2026-03-29T15:07:34	token-guardian	file_write	project_manager.md (health_check scope)	40
+2026-03-29T15:07:34	token-guardian	file_write	guardian_directives.md	30
+2026-03-29T15:07:34	token-guardian	file_write	guardian_pm_comms.md	30
+2026-03-29T15:07:34	token-guardian	file_write	token_usage_log.tsv	20
