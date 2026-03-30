@@ -150,6 +150,45 @@ class FoodScraperAccuracyTests(TestCase):
         self.assertAlmostEqual(result[0]['lat'], 34.2250)
         self.assertAlmostEqual(result[0]['lon'], -77.9450)
 
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_event_date_extracted_when_present(self, mock_geo):
+        """DATE_RE finds a future date and stores it in tags['event_date']."""
+        from food_app.scraper import _scrape_source
+        text = "Free Groceries Giveaway\nDecember 15, 2099\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['tags']['event_date'], 'December 15, 2099')
+
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_event_included_without_date(self, mock_geo):
+        """Events without a date are still returned; tags must not have 'event_date' key."""
+        from food_app.scraper import _scrape_source
+        text = "Community Pantry Pickup\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(len(result), 1)
+        self.assertNotIn('event_date', result[0]['tags'])
+
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_past_dated_event_is_dropped(self, mock_geo):
+        """An event with a date clearly in the past must be silently dropped."""
+        from food_app.scraper import _scrape_source
+        # January 1, 2000 is unambiguously in the past
+        text = "Food Pantry Giveaway\nJanuary 1, 2000\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(result, [])
+
+    @patch('food_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_undated_event_is_kept(self, mock_geo):
+        """Events with no detectable date are kept (assume ongoing/recurring)."""
+        from food_app.scraper import _scrape_source
+        text = "Weekly Produce Pickup\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(len(result), 1)
+
 
 class FoodLiveServerTests(LiveServerTestCase):
     """Integration tests that spin up a real HTTP server and hit it with requests.

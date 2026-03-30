@@ -24,6 +24,7 @@ import math
 import re
 import logging
 import requests
+from datetime import date, datetime
 from django.core.cache import cache
 from .sources import SHELTER_SOURCES
 
@@ -41,8 +42,50 @@ ADDRESS_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Regex pattern to extract event dates in common US formats:
+#   "March 15", "Mar 15, 2025", "3/15/2025", "03/15/25"
+DATE_RE = re.compile(
+    r'\b(?:'
+    r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?'
+    r'|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+    r'\s+\d{1,2}(?:,\s*\d{4})?'
+    r'|'
+    r'\d{1,2}/\d{1,2}/\d{2,4}'
+    r')\b',
+    re.IGNORECASE,
+)
+
 # Maximum distance (km) between geocoded address and org's service area centroid
 PLAUSIBILITY_MAX_KM = 80
+
+# Date formats tried when parsing a DATE_RE match
+_DATE_FORMATS = [
+    "%B %d, %Y",   # March 15, 2025
+    "%b %d, %Y",   # Mar 15, 2025
+    "%B %d",       # March 15  (no year — assume current year)
+    "%b %d",       # Mar 15    (no year — assume current year)
+    "%m/%d/%Y",    # 3/15/2025
+    "%m/%d/%y",    # 03/15/25
+]
+
+
+def _parse_event_date(date_str):
+    """Parse a DATE_RE match string and return a datetime.date, or None on failure.
+
+    For formats without a year the current year is assumed so that "March 15"
+    resolves to a date this calendar year.  If parsing fails for any reason
+    None is returned and the caller must keep the event (err on inclusion).
+    """
+    for fmt in _DATE_FORMATS:
+        try:
+            parsed = datetime.strptime(date_str.strip(), fmt)
+            # Formats without %Y default to 1900 — substitute current year.
+            if parsed.year == 1900:
+                parsed = parsed.replace(year=date.today().year)
+            return parsed.date()
+        except ValueError:
+            continue
+    return None
 
 
 def geocode_address(address):
@@ -164,16 +207,29 @@ def _scrape_source(driver, source):
                 )
                 continue
 
+            tags = {
+                "name": name,
+                "address": candidate,
+                "source_label": source["name"],
+                "event_url": source["url"],
+            }
+            date_match = DATE_RE.search(text)
+            if date_match:
+                date_str = date_match.group(0).strip()
+                parsed_date = _parse_event_date(date_str)
+                # Drop events whose date is in the past; keep if date unparseable
+                if parsed_date is not None and parsed_date < date.today():
+                    logger.debug(
+                        "Dropping past event '%s' (date: %s)", name, date_str
+                    )
+                    continue
+                tags["event_date"] = date_str
+
             events.append({
                 "type": "event",
                 "lat": lat,
                 "lon": lon,
-                "tags": {
-                    "name": name,
-                    "address": candidate,
-                    "source_label": source["name"],
-                    "event_url": source["url"],
-                },
+                "tags": tags,
             })
 
     except Exception as e:

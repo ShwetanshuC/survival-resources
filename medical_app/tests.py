@@ -208,6 +208,45 @@ class ScraperAccuracyTests(TestCase):
         self.assertAlmostEqual(result[0]['lat'], 34.2250)
         self.assertAlmostEqual(result[0]['lon'], -77.9450)
 
+    @patch('medical_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_event_date_extracted_when_present(self, mock_geo):
+        """DATE_RE finds a future date and stores it in tags['event_date']."""
+        from medical_app.scraper import _scrape_source
+        text = "Free Health Fair\nDec 15, 2099\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['tags']['event_date'], 'Dec 15, 2099')
+
+    @patch('medical_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_event_included_without_date(self, mock_geo):
+        """Events without a date are still returned; tags must not have 'event_date' key."""
+        from medical_app.scraper import _scrape_source
+        text = "Free Health Screening\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(len(result), 1)
+        self.assertNotIn('event_date', result[0]['tags'])
+
+    @patch('medical_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_past_dated_event_is_dropped(self, mock_geo):
+        """An event with a date clearly in the past must be silently dropped."""
+        from medical_app.scraper import _scrape_source
+        # Mar 15, 2020 is unambiguously in the past
+        text = "Free Health Fair\nMar 15, 2020\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(result, [])
+
+    @patch('medical_app.scraper.geocode_address', return_value=(34.2250, -77.9450))
+    def test_undated_event_is_kept(self, mock_geo):
+        """Events with no detectable date are kept (assume ongoing/recurring)."""
+        from medical_app.scraper import _scrape_source
+        text = "Weekly Free Clinic\n123 Main St, Wilmington, NC 28401"
+        driver = self._make_driver_with_blocks([text])
+        result = _scrape_source(driver, self._make_source())
+        self.assertEqual(len(result), 1)
+
 
 class PlausibilityHelperTests(TestCase):
     """Unit tests for _haversine_km and _is_plausible."""
